@@ -1,1 +1,3 @@
-export * from './PlaceholderForm';
+import PlaceholderForm from './PlaceholderForm';
+
+export { PlaceholderForm };

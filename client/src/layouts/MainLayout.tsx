@@ -1,24 +1,22 @@
 import React from 'react';
 import { Outlet } from 'react-router-dom';
+import { Header, Footer, Sidebar } from '../components/layout';
 
 const MainLayout: React.FC = () => {
     return (
-        <div>
-            <header style={{ background: '#f0f0f0', padding: '1rem' }}>
-                <h2>Finance Tracker</h2>
-                <nav>
-                    <a href="/">Dashboard</a> |{' '}
-                    <a href="/accounts">Accounts</a> |{' '}
-                    <a href="/transactions">Transactions</a> |{' '}
-                    <a href="/settings">Settings</a> |{' '}
-                </nav>
-            </header>
-            <main style={{ padding: '1rem' }}>
-                <Outlet />
-            </main>
-            <footer style={{ background: '#f0f0f0', padding: '1rem', marginTop: '2rem' }}>
-                <p>&copy; {new Date().getFullYear()} Finance Tracker</p>
-            </footer>
+        <div className="d-flex flex-column min-vh-100">
+            <Header />
+            <div className="container-fluid flex-grow-1">
+                <div className="row h-100">
+                    <div className="col-md-3 col-lg-2 p-0">
+                        <Sidebar />
+                    </div>
+                    <main className="col-md-9 col-lg-10 p-4">
+                        <Outlet />
+                    </main>
+                </div>
+            </div>
+            <Footer />
         </div>
     );
 };

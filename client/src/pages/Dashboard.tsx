@@ -1,5 +1,5 @@
 import React from 'react';
-import PlaceholderForm from '../components/PlaceholderForm';
+import { PlaceholderForm } from '../components';
 
 const Dashboard: React.FC = () => {
     return (
