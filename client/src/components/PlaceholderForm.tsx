@@ -6,20 +6,20 @@ import { useForm } from 'react-hook-form';
 const PlaceholderForm: React.FC = () => {
     const { register, handleSubmit } = useForm();
 
-    const onSubmit = (d: any) => alert(JSON.stringify(d))
+    const onSubmit = (d: any) => alert(JSON.stringify(d));
 
     return (
         <form onSubmit={handleSubmit(onSubmit)} className="border p-3">
             <h5>Form Placeholder</h5>
             <p>React Hook Form is installed and ready.</p>
             {/* Just static inputs - no interactivity */}
-            <input type="text"
-                   className="form-control mb-2"
-                   placeholder="Static input (non-functional)"
-                   disabled
-                   {...register('placeholder')}
+            <input
+                type="text"
+                className="form-control mb-2"
+                placeholder="Static input (non-functional)"
+                disabled
+                {...register('placeholder')}
             />
-
         </form>
     );
 };

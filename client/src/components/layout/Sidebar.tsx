@@ -6,16 +6,24 @@ const Sidebar: React.FC = () => {
             <h5>Navigation</h5>
             <ul className="nav flex-column">
                 <li className="nav-item">
-                    <a className="nav-link" href="/">Dashboard</a>
+                    <a className="nav-link" href="/">
+                        Dashboard
+                    </a>
                 </li>
                 <li className="nav-item">
-                    <a className="nav-link" href="/accounts">Accounts</a>
+                    <a className="nav-link" href="/accounts">
+                        Accounts
+                    </a>
                 </li>
                 <li className="nav-item">
-                    <a className="nav-link" href="/transactions">Transactions</a>
+                    <a className="nav-link" href="/transactions">
+                        Transactions
+                    </a>
                 </li>
                 <li className="nav-item">
-                    <a className="nav-link" href="/settings">Settings</a>
+                    <a className="nav-link" href="/settings">
+                        Settings
+                    </a>
                 </li>
             </ul>
         </aside>
