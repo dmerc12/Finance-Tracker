@@ -4,17 +4,15 @@ import { Header, Footer, Sidebar } from '../components/layout';
 
 const MainLayout: React.FC = () => {
     return (
-        <div className="d-flex flex-column min-vh-100">
+        <div className="flex flex-col min-h-screen bg-background text-foreground">
             <Header />
-            <div className="container-fluid flex-grow-1">
-                <div className="row h-100">
-                    <div className="col-md-3 col-lg-2 p-0">
-                        <Sidebar />
-                    </div>
-                    <main className="col-md-9 col-lg-10 p-4">
-                        <Outlet />
-                    </main>
-                </div>
+            <div className="flex flex-1">
+                <aside className="w-64 border-r border-border bg-card">
+                    <Sidebar />
+                </aside>
+                <main className="flex-1 p-6">
+                    <Outlet />
+                </main>
             </div>
             <Footer />
         </div>

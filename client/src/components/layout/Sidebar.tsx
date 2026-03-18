@@ -2,31 +2,47 @@ import React from 'react';
 
 const Sidebar: React.FC = () => {
     return (
-        <aside className="bg-light p-3 h-100">
-            <h5>Navigation</h5>
-            <ul className="nav flex-column">
-                <li className="nav-item">
-                    <a className="nav-link" href="/">
-                        Dashboard
-                    </a>
-                </li>
-                <li className="nav-item">
-                    <a className="nav-link" href="/accounts">
-                        Accounts
-                    </a>
-                </li>
-                <li className="nav-item">
-                    <a className="nav-link" href="/transactions">
-                        Transactions
-                    </a>
-                </li>
-                <li className="nav-item">
-                    <a className="nav-link" href="/settings">
-                        Settings
-                    </a>
-                </li>
-            </ul>
-        </aside>
+        <div className="p--4">
+            <h5 className="text-sm font-medium text-muted-foreground uppercase tracking-wider mb-4">
+                Navigation
+            </h5>
+            <nav>
+                <ul className="space-y-2">
+                    <li>
+                        <a
+                            className="block px-3 py-2 rounded-md text-foreground hover:bg-accend hover:text-accent-foreground"
+                            href="/"
+                        >
+                            Dashboard
+                        </a>
+                    </li>
+                    <li>
+                        <a
+                            className="block px-3 py-2 rounded-md text-foreground hover:bg-accend hover:text-accent-foreground"
+                            href="/accounts"
+                        >
+                            Accounts
+                        </a>
+                    </li>
+                    <li>
+                        <a
+                            className="block px-3 py-2 rounded-md text-foreground hover:bg-accend hover:text-accent-foreground"
+                            href="/transactions"
+                        >
+                            Transactions
+                        </a>
+                    </li>
+                    <li>
+                        <a
+                            className="block px-3 py-2 rounded-md text-foreground hover:bg-accend hover:text-accent-foreground"
+                            href="/settings"
+                        >
+                            Settings
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
     );
 };
 
