@@ -1,9 +1,8 @@
-export { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from './accordion';
+import alertVariants from './alertVariants';
+
+export { alertVariants };
+export { Alert, AlertTitle, AlertDescription } from './alert';
 export {
-    Alert,
-    AlertTitle,
-    AlertDescription,
-    alertVariants,
     AlertDialog,
     AlertDialogTrigger,
     AlertDialogPortal,
@@ -15,5 +14,4 @@ export {
     AlertDialogDescription,
     AlertDialogAction,
     AlertDialogCancel,
-} from './alert';
-export { Button, buttonVariants } from './button';
+} from './alert-dialog';
