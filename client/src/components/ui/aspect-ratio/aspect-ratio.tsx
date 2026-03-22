@@ -5,4 +5,4 @@ function AspectRatio({ ...props }: React.ComponentProps<typeof AspectRatioPrimit
     return <AspectRatioPrimitive.Root data-slot="aspect-ratio" {...props} />;
 }
 
-export { AspectRatio };
+export default AspectRatio;
