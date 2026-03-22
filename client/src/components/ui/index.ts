@@ -44,4 +44,12 @@ export {
     CarouselPrevious,
     CarouselNext,
 } from './carousel';
+export {
+    ChartContainer,
+    ChartTooltip,
+    ChartTooltipContent,
+    ChartLegend,
+    ChartLegendContent,
+    ChartStyle,
+} from './chart';
 export { Checkbox } from './checkbox';
