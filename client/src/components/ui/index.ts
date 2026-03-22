@@ -44,3 +44,4 @@ export {
     CarouselPrevious,
     CarouselNext,
 } from './carousel';
+export { Checkbox } from './checkbox';
