@@ -1,4 +1,4 @@
-import { ChartContext } from './index';
+import ChartContext from './chart-context';
 import * as React from 'react';
 
 function useChart() {

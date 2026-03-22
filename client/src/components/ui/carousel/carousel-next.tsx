@@ -1,6 +1,6 @@
 import { ArrowRight } from 'lucide-react';
-import { useCarousel } from './index'; // src/components/carousel
-import { Button } from '../index'; // src/components
+import useCarousel from './useCarousel';
+import { Button } from '../button';
 import * as React from 'react';
 import { cn } from '../utils';
 

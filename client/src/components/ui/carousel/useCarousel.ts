@@ -1,4 +1,4 @@
-import { CarouselContext } from './index'; // src/components/carousel
+import CarouselContext from './carousel-context';
 import * as React from 'react';
 
 function useCarousel() {

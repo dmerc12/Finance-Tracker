@@ -1,8 +1,9 @@
-import { PreviousButton, NextButton } from './index'; // src/components/calendar
+import PreviousButton from './previous-button';
 import { DayPicker } from 'react-day-picker';
-import { buttonVariants } from '../index'; // src/components
+import { buttonVariants } from '../button';
+import NextButton from './next-button';
 import * as React from 'react';
-import { cn } from '../utils.ts';
+import { cn } from '../utils';
 
 function Calendar({
     className,

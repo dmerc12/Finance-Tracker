@@ -1,5 +1,6 @@
-import { useChart, getPayloadConfig } from './index'; // src/components/chart
+import getPayloadConfig from './getPayloadConfig';
 import * as RechartsPrimitive from 'recharts';
+import useChart from './useChart';
 import * as React from 'react';
 import { cn } from '../utils';
 

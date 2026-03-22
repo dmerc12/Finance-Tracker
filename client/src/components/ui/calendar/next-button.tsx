@@ -1,7 +1,7 @@
 import { ChevronRight } from 'lucide-react';
 import { buttonVariants } from '../button';
 import * as React from 'react';
-import { cn } from '../utils.ts';
+import { cn } from '../utils';
 
 const NextButton = ({ className, ...props }: React.ComponentProps<'button'>) => (
     <button

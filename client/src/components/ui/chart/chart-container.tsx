@@ -1,5 +1,6 @@
-import { type ChartConfig, ChartContext, ChartStyle } from './index'; // src/components/chart
+import ChartContext, { type ChartConfig } from './chart-context';
 import * as RechartsPrimitive from 'recharts';
+import ChartStyle from './chart-style';
 import * as React from 'react';
 import { cn } from '../utils';
 

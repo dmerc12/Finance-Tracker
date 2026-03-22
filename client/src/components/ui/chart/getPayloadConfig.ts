@@ -1,4 +1,4 @@
-import { type ChartConfig } from './index'; // src/components/chart
+import { type ChartConfig } from './chart-context';
 
 // Helper to extract item config from a payload.
 function getPayloadConfig(config: ChartConfig, payload: unknown, key: string) {

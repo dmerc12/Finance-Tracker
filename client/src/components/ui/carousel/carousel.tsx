@@ -1,4 +1,4 @@
-import { CarouselContext, type CarouselProps, type CarouselAPI } from './index'; // src/components/carousel
+import CarouselContext, { type CarouselProps, type CarouselAPI } from './carousel-context';
 import useEmblaCarousel from 'embla-carousel-react';
 import * as React from 'react';
 import { cn } from '../utils';

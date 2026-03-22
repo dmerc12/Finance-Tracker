@@ -1,4 +1,4 @@
-import { type ChartConfig, THEMES } from './index'; // src/components/chart
+import { type ChartConfig, THEMES } from './chart-context';
 
 function ChartStyle({ id, config }: { id: string; config: ChartConfig }) {
     const colorConfig = Object.entries(config).filter(([, config]) => config.theme || config.color);

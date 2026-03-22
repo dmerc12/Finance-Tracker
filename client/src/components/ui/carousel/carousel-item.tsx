@@ -1,4 +1,4 @@
-import { useCarousel } from './index'; // src/components/carousel
+import useCarousel from './useCarousel';
 import * as React from 'react';
 import { cn } from '../utils';
 
