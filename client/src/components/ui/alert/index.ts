@@ -1,17 +1,6 @@
+import AlertDescription from './alert-description';
 import alertVariants from './alertVariants';
+import AlertTitle from './alert-title';
+import Alert from './alert';
 
-export { alertVariants };
-export { Alert, AlertTitle, AlertDescription } from './alert';
-export {
-    AlertDialog,
-    AlertDialogTrigger,
-    AlertDialogPortal,
-    AlertDialogOverlay,
-    AlertDialogContent,
-    AlertDialogHeader,
-    AlertDialogFooter,
-    AlertDialogTitle,
-    AlertDialogDescription,
-    AlertDialogAction,
-    AlertDialogCancel,
-} from './alert-dialog';
+export { Alert, AlertTitle, AlertDescription, alertVariants };

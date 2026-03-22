@@ -1,9 +1,6 @@
-export { Accordion, AccordionItem, AccordionTrigger, AccordionContent } from './accordion';
+export { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from './accordion';
+export { Alert, AlertTitle, AlertDescription, alertVariants } from './alert';
 export {
-    Alert,
-    AlertTitle,
-    AlertDescription,
-    alertVariants,
     AlertDialog,
     AlertDialogTrigger,
     AlertDialogPortal,
@@ -15,7 +12,8 @@ export {
     AlertDialogDescription,
     AlertDialogAction,
     AlertDialogCancel,
-} from './alert';
+} from './alert-dialog';
 export { AspectRatio } from './aspect-ratio';
 export { Avatar, AvatarImage, AvatarFallback } from './avatar';
+export { Badge, badgeVariants } from './badge';
 export { Button, buttonVariants } from './button';
