@@ -54,3 +54,6 @@ export {
 } from './chart';
 export { Checkbox } from './checkbox';
 export { Collapsible, CollapsibleTrigger, CollapsibleContent } from './collapsible';
+
+export { cn } from './utils';
+export { useIsMobile } from './useIsMobile';
