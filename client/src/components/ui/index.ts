@@ -26,3 +26,4 @@ export {
     BreadcrumbEllipsis,
 } from './breadcrumb';
 export { Button, buttonVariants } from './button';
+export { Calendar } from './calendar';
