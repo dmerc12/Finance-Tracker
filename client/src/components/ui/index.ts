@@ -53,3 +53,4 @@ export {
     ChartStyle,
 } from './chart';
 export { Checkbox } from './checkbox';
+export { Collapsible, CollapsibleTrigger, CollapsibleContent } from './collapsible';
