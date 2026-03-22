@@ -27,3 +27,12 @@ export {
 } from './breadcrumb';
 export { Button, buttonVariants } from './button';
 export { Calendar } from './calendar';
+export {
+    Card,
+    CardHeader,
+    CardTitle,
+    CardDescription,
+    CardAction,
+    CardContent,
+    CardFooter,
+} from './card';
