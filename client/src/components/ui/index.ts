@@ -36,3 +36,11 @@ export {
     CardContent,
     CardFooter,
 } from './card';
+export {
+    type CarouselAPI,
+    Carousel,
+    CarouselContent,
+    CarouselItem,
+    CarouselPrevious,
+    CarouselNext,
+} from './carousel';
