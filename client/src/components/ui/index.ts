@@ -17,4 +17,5 @@ export {
     AlertDialogCancel,
 } from './alert';
 export { AspectRatio } from './aspect-ratio';
+export { Avatar, AvatarImage, AvatarFallback } from './avatar';
 export { Button, buttonVariants } from './button';
