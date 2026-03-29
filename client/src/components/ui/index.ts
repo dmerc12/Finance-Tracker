@@ -54,6 +54,16 @@ export {
 } from './chart';
 export { Checkbox } from './checkbox';
 export { Collapsible, CollapsibleTrigger, CollapsibleContent } from './collapsible';
+export {
+    Command,
+    CommandDialog,
+    CommandInput,
+    CommandList,
+    CommandEmpty,
+    CommandSeparator,
+    CommandItem,
+    CommandShortcut,
+} from './command';
 
 export {
     Dialog,
