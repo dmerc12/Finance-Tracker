@@ -123,6 +123,7 @@ export {
     DropdownMenuSubContent,
 } from './dropdown-menu';
 
+export { Input } from './input';
 export { Label } from './label';
 
 export { cn } from './utils';
