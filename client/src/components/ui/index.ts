@@ -180,5 +180,7 @@ export { RadioGroup, RadioGroupItem } from './radio-group';
 export { ResizablePanelGroup, ResizablePanel, ResizableHandle } from './resizable';
 export { ScrollArea, ScrollBar } from './scroll-area';
 
+export { Separator } from './separator';
+
 export { cn } from './utils';
 export { useIsMobile } from './useIsMobile';
