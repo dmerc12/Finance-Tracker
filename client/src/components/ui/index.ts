@@ -184,6 +184,7 @@ export { Separator } from './separator';
 
 export { Skeleton } from './skeleton';
 export { Slider } from './slider';
+export { Sonner } from './sonner';
 
 export { cn } from './utils';
 export { useIsMobile } from './useIsMobile';
