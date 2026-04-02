@@ -154,6 +154,17 @@ export {
     MenubarSubTrigger,
     MenubarSubContent,
 } from './menubar';
+export {
+    NavigationMenu,
+    NavigationMenuList,
+    NavigationMenuItem,
+    NavigationMenuContent,
+    NavigationMenuTrigger,
+    NavigationMenuLink,
+    NavigationMenuIndicator,
+    NavigationMenuViewport,
+    navigationMenuTriggerStyle,
+} from './navigation-menu';
 
 export { cn } from './utils';
 export { useIsMobile } from './useIsMobile';
