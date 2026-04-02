@@ -123,5 +123,7 @@ export {
     DropdownMenuSubContent,
 } from './dropdown-menu';
 
+export { Label } from './label';
+
 export { cn } from './utils';
 export { useIsMobile } from './useIsMobile';
