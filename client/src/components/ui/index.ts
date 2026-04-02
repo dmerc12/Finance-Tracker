@@ -178,6 +178,7 @@ export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from './popove
 export { Progress } from './progress';
 export { RadioGroup, RadioGroupItem } from './radio-group';
 export { ResizablePanelGroup, ResizablePanel, ResizableHandle } from './resizable';
+export { ScrollArea, ScrollBar } from './scroll-area';
 
 export { cn } from './utils';
 export { useIsMobile } from './useIsMobile';
