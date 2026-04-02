@@ -123,6 +123,7 @@ export {
     DropdownMenuSubContent,
 } from './dropdown-menu';
 
+export { HoverCard, HoverCardTrigger, HoverCardContent } from './hover-card';
 export { Input } from './input';
 export { InputOTP, InputOTPGroup, InputOtpSlot, InputOTPSeparator } from './input-otp';
 export { Label } from './label';
