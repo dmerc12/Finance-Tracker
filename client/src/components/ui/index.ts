@@ -175,6 +175,7 @@ export {
     PaginationEllipsis,
 } from './pagination';
 export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from './popover';
+export { Progress } from './progress';
 
 export { cn } from './utils';
 export { useIsMobile } from './useIsMobile';
