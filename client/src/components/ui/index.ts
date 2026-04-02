@@ -187,5 +187,7 @@ export { Slider } from './slider';
 export { Sonner } from './sonner';
 export { Switch } from './switch';
 
+export { Textarea } from './textarea';
+
 export { cn } from './utils';
 export { useIsMobile } from './useIsMobile';
