@@ -174,6 +174,7 @@ export {
     PaginationNext,
     PaginationEllipsis,
 } from './pagination';
+export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from './popover';
 
 export { cn } from './utils';
 export { useIsMobile } from './useIsMobile';
