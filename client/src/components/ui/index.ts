@@ -124,6 +124,7 @@ export {
 } from './dropdown-menu';
 
 export { Input } from './input';
+export { InputOTP, InputOTPGroup, InputOtpSlot, InputOTPSeparator } from './input-otp';
 export { Label } from './label';
 
 export { cn } from './utils';
