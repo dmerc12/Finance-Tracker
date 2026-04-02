@@ -122,7 +122,16 @@ export {
     DropdownMenuSubTrigger,
     DropdownMenuSubContent,
 } from './dropdown-menu';
-
+export {
+    useFormField,
+    Form,
+    FormItem,
+    FormLabel,
+    FormControl,
+    FormDescription,
+    FormMessage,
+    FormField,
+} from './form';
 export { HoverCard, HoverCardTrigger, HoverCardContent } from './hover-card';
 export { Input } from './input';
 export { InputOTP, InputOTPGroup, InputOtpSlot, InputOTPSeparator } from './input-otp';
