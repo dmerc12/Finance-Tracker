@@ -165,6 +165,15 @@ export {
     NavigationMenuViewport,
     navigationMenuTriggerStyle,
 } from './navigation-menu';
+export {
+    Pagination,
+    PaginationContent,
+    PaginationLink,
+    PaginationItem,
+    PaginationPrevious,
+    PaginationNext,
+    PaginationEllipsis,
+} from './pagination';
 
 export { cn } from './utils';
 export { useIsMobile } from './useIsMobile';
