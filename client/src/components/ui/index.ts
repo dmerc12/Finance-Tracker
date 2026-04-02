@@ -136,6 +136,24 @@ export { HoverCard, HoverCardTrigger, HoverCardContent } from './hover-card';
 export { Input } from './input';
 export { InputOTP, InputOTPGroup, InputOtpSlot, InputOTPSeparator } from './input-otp';
 export { Label } from './label';
+export {
+    Menubar,
+    MenubarPortal,
+    MenubarMenu,
+    MenubarTrigger,
+    MenubarContent,
+    MenubarGroup,
+    MenubarSeparator,
+    MenubarLabel,
+    MenubarItem,
+    MenubarShortcut,
+    MenubarCheckboxItem,
+    MenubarRadioGroup,
+    MenubarRadioItem,
+    MenubarSub,
+    MenubarSubTrigger,
+    MenubarSubContent,
+} from './menubar';
 
 export { cn } from './utils';
 export { useIsMobile } from './useIsMobile';
