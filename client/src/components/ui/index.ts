@@ -182,5 +182,7 @@ export { ScrollArea, ScrollBar } from './scroll-area';
 
 export { Separator } from './separator';
 
+export { Skeleton } from './skeleton';
+
 export { cn } from './utils';
 export { useIsMobile } from './useIsMobile';
