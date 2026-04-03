@@ -197,12 +197,20 @@ export { Skeleton } from './skeleton';
 export { Slider } from './slider';
 export { Sonner } from './sonner';
 export { Switch } from './switch';
-
+export {
+    Table,
+    TableHeader,
+    TableBody,
+    TableFooter,
+    TableHead,
+    TableRow,
+    TableCell,
+    TableCaption,
+} from './table';
 export { Tabs, TabsList, TabsTrigger, TabsContent } from './tabs';
 export { Textarea } from './textarea';
 export { Toggle, toggleVariants } from './toggle';
 export { ToggleGroup, ToggleGroupItem } from './toggle-group';
 export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from './tooltip';
-
 export { cn } from './utils';
 export { useIsMobile } from './useIsMobile';
