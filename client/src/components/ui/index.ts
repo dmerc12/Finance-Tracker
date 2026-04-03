@@ -179,7 +179,18 @@ export { Progress } from './progress';
 export { RadioGroup, RadioGroupItem } from './radio-group';
 export { ResizablePanelGroup, ResizablePanel, ResizableHandle } from './resizable';
 export { ScrollArea, ScrollBar } from './scroll-area';
-
+export {
+    Select,
+    SelectContent,
+    SelectGroup,
+    SelectItem,
+    SelectLabel,
+    SelectScrollDownButton,
+    SelectScrollUpButton,
+    SelectSeparator,
+    SelectTrigger,
+    SelectValue,
+} from './select';
 export { Separator } from './separator';
 
 export { Skeleton } from './skeleton';
