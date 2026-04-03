@@ -1,20 +1,34 @@
-import React from 'react';
+import { Header, Sidebar } from '../components/layout';
 import { Outlet } from 'react-router-dom';
-import { Header, Footer, Sidebar } from '../components/layout';
+import React, { useState } from 'react';
 
 const MainLayout: React.FC = () => {
+    const [sidebarOpen, setSidebarOpen] = useState(true);
+
+    const getPageTitle = () => {
+        const path = location.pathname;
+        if (path === '/dashboard') return 'Dashboard';
+        if (path === '/accounts') return 'Accounts';
+        if (path === '/transactions') return 'Transactions';
+        if (path === '/analytics') return 'Analytics';
+        if (path === '/settings') return 'Settings';
+        return 'Finance Tracker';
+    };
+
     return (
-        <div className="flex flex-col min-h-screen bg-background text-foreground">
-            <Header />
-            <div className="flex flex-1">
-                <aside className="w-64 border-r border-border bg-card">
-                    <Sidebar />
-                </aside>
-                <main className="flex-1 p-6">
+        <div className="flex min-h-screen bg-background text-foreground">
+            <Sidebar isOpen={sidebarOpen} />
+            <div className="flex flex-col flex-1">
+                <Header
+                    title={getPageTitle()}
+                    sidebarOpen={sidebarOpen}
+                    onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+                    userName="User" // TODO: replace with actual user name from auth
+                />
+                <main className="flex-1 p-6 overflow-y-auto">
                     <Outlet />
                 </main>
             </div>
-            <Footer />
         </div>
     );
 };

@@ -1,40 +1,41 @@
-import React from 'react';
+import { Menu, X, User } from 'lucide-react';
+import type { ReactNode } from 'react';
+import { Button } from '../ui/button';
 
-const Header: React.FC = () => {
+interface PageHeaderProps {
+    title: string;
+    sidebarOpen: boolean;
+    onToggleSidebar: () => void;
+    userName?: string;
+    actions?: ReactNode;
+}
+
+export default function Header({
+    title,
+    sidebarOpen,
+    onToggleSidebar,
+    userName = 'User',
+    actions,
+}: PageHeaderProps) {
     return (
-        <header className="bg-card border-b border-border px-6 py-3 flex items-center justify-between">
-            <a className="text-xl font-medium text-primary" href="/">
-                Finance Tracker
-            </a>
-            <button className="md:hidden text-muted-foreground">
-                <span className="sr-only">Open menu</span>☰
-            </button>
-            <nav className="hidden md:block">
-                <ul className="flex space-x-6">
-                    <li>
-                        <a className="text-foreground hover:text-primary" href="/">
-                            Dashboard
-                        </a>
-                    </li>
-                    <li>
-                        <a className="text-foreground hover:text-primary" href="/accounts">
-                            Accounts
-                        </a>
-                    </li>
-                    <li>
-                        <a className="text-foreground hover:text-primary" href="/transactions">
-                            Transactions
-                        </a>
-                    </li>
-                    <li>
-                        <a className="text-foreground hover:text-primary" href="/settings">
-                            Settings
-                        </a>
-                    </li>
-                </ul>
-            </nav>
+        <header className="bg-white border-b p-3 flex items-center gap-3 flex-wrap">
+            <Button variant="outline" size="icon" onClick={onToggleSidebar} className="shrink-0">
+                {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
+            </Button>
+
+            <h5 className="text-lg font-semibold m-0 flex-1">{title}</h5>
+
+            {actions && <div className="flex items-center gap-2">{actions}</div>}
+
+            <div className="flex items-center gap-2">
+                <span className="text-slate-600 hidden md:inline">Welcome back, {userName}!</span>
+                <div
+                    className="bg-blue-600 text-white rounded-full flex items-center justify-center w-10 h-10 
+                        shrink-0"
+                >
+                    <User size={20} />
+                </div>
+            </div>
         </header>
     );
-};
-
-export default Header;
+}
