@@ -199,6 +199,7 @@ export { Sonner } from './sonner';
 export { Switch } from './switch';
 
 export { Textarea } from './textarea';
+export { Toggle, toggleVariants } from './toggle';
 
 export { cn } from './utils';
 export { useIsMobile } from './useIsMobile';
