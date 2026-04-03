@@ -3,6 +3,7 @@ import Transactions from './pages/Transactions';
 import MainLayout from './layouts/MainLayout';
 import Dashboard from './pages/Dashboard';
 import Analytics from './pages/Analytics';
+import NotFound from './pages/NotFound';
 import Settings from './pages/Settings';
 import Register from './pages/Register';
 import Accounts from './pages/Accounts';
@@ -21,6 +22,7 @@ function App() {
                     <Route path="/analytics" element={<Analytics />} />
                     <Route path="/settings" element={<Settings />} />
                 </Route>
+                <Route path="*" element={<NotFound />} />
             </Routes>
         </BrowserRouter>
     );
