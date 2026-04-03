@@ -198,6 +198,7 @@ export { Slider } from './slider';
 export { Sonner } from './sonner';
 export { Switch } from './switch';
 
+export { Tabs, TabsList, TabsTrigger, TabsContent } from './tabs';
 export { Textarea } from './textarea';
 export { Toggle, toggleVariants } from './toggle';
 export { ToggleGroup, ToggleGroupItem } from './toggle-group';
