@@ -201,6 +201,7 @@ export { Switch } from './switch';
 export { Textarea } from './textarea';
 export { Toggle, toggleVariants } from './toggle';
 export { ToggleGroup, ToggleGroupItem } from './toggle-group';
+export { Tooltip, TooltipTrigger, TooltipContent, TooltipProvider } from './tooltip';
 
 export { cn } from './utils';
 export { useIsMobile } from './useIsMobile';
