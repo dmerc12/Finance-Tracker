@@ -48,7 +48,7 @@ const AccountSummaryCard = memo(function AccountSummaryCard({
             transition={{ delay: animationDelay, duration: 0.3 }}
         >
             <Card className="shadow-sm">
-                <CardContent className="pt-6">
+                <CardContent className="pt-6 pb-4">
                     <div className="flex items-start justify-between mb-4">
                         <div className="flex-1">
                             <div className="flex items-center gap-2 mb-2">

@@ -31,7 +31,7 @@ export default function RecentTransactionsCard({
                     </div>
                 </CardHeader>
                 <CardContent>
-                    <div className="flex flex-col">
+                    <div className="flex flex-col mb-4">
                         {transactions.map((transaction, index) => (
                             <TransactionItem
                                 key={transaction.id}

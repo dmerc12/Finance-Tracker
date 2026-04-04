@@ -1,10 +1,10 @@
-import AccountSummaryCard from './AccountSummaryCard';
+import AccountSummaryCard from '../dashboard/AccountSummaryCard.tsx';
 import ConfirmDialog from './ConfirmDialog';
 import LoadingState from './LoadingState';
 import EmptyState from './EmptyState';
 import FormDialog from './FormDialog';
-import StatsGrid from './StatsGrid';
-import StatCard from './StatCard';
+import StatsGrid from '../dashboard/StatsGrid.tsx';
+import StatCard from '../dashboard/StatCard.tsx';
 
 export {
     ConfirmDialog,

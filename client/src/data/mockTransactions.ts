@@ -183,46 +183,56 @@ export const mockTransactions: Transaction[] = [
 /**
  * Transactions for Dashboard (recent 5)
  */
-export const mockRecentTransactions = [
+export const mockRecentTransactions: Transaction[] = [
     {
         id: 1,
         description: 'Grocery Store',
         amount: -85.43,
-        category: 'Food & Dining',
-        date: '2026-01-02',
         type: 'expense',
+        category: 'Food & Dining',
+        accountId: 1,
+        accountName: 'Chase Checking',
+        date: '2026-01-02',
     },
     {
         id: 2,
         description: 'Salary Deposit',
         amount: 3500.0,
-        category: 'Income',
-        date: '2026-01-01',
         type: 'income',
+        category: 'Income',
+        accountId: 1,
+        accountName: 'Chase Checking',
+        date: '2026-01-01',
     },
     {
         id: 3,
         description: 'Netflix Subscription',
         amount: -15.99,
-        category: 'Entertainment',
-        date: '2025-12-30',
         type: 'expense',
+        category: 'Entertainment',
+        accountId: 3,
+        accountName: 'Credit Card',
+        date: '2025-12-30',
     },
     {
         id: 4,
         description: 'Gas Station',
         amount: -45.67,
-        category: 'Transportation',
-        date: '2025-12-29',
         type: 'expense',
+        category: 'Transportation',
+        accountId: 1,
+        accountName: 'Chase Checking',
+        date: '2025-12-29',
     },
     {
         id: 5,
         description: 'Coffee Shop',
         amount: -12.5,
-        category: 'Food & Dining',
-        date: '2025-12-28',
         type: 'expense',
+        category: 'Food & Dining',
+        accountId: 1,
+        accountName: 'Chase Checking',
+        date: '2025-12-28',
     },
 ];
 

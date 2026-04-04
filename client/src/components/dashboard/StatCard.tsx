@@ -35,7 +35,7 @@ const StatCard = memo(function StatCard({
             transition={{ delay: animationDelay, duration: 0.3 }}
         >
             <Card className="shadow-sm h-full">
-                <CardContent className="pt-6">
+                <CardContent className="pt-6 pb-4">
                     <div className="flex justify-between items-start mb-3">
                         <h6 className="text-sm text-slate-600 mb-0">{label}</h6>
                         {Icon && (

@@ -6,7 +6,6 @@ import {
     Pie,
     Sector,
     ResponsiveContainer,
-    Legend,
     Tooltip,
     type PieSectorShapeProps,
 } from 'recharts';
@@ -58,9 +57,19 @@ export default function SpendingChartCard({ data, animationDelay = 0.5 }: Spendi
                                     shape={CustomSector}
                                 />
                                 <Tooltip isAnimationActive={false} />
-                                <Legend />
                             </PieChart>
                         </ResponsiveContainer>
+                    </div>
+                    <div className="flex flex-wrap justify-center gap-4 mb-3">
+                        {data.map((item, index) => (
+                            <div key={index} className="flex items-center gap-2">
+                                <span
+                                    className="inline-block w-3 h-3 rounded-full"
+                                    style={{ backgroundColor: item.color }}
+                                />
+                                <span className="text-sm text-slate-600">{item.name}</span>
+                            </div>
+                        ))}
                     </div>
                 </CardContent>
             </Card>
