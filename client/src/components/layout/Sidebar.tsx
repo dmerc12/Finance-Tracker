@@ -36,7 +36,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
                 duration: 0.4,
                 ease: [0.4, 0, 0.2, 1],
             }}
-            className="bg-slate-900 text-white flex flex-col overflow-hidden shrink-0"
+            className="bg-slate-900 text-white flex flex-col overflow-hidden shrink-0 sticky top-0 h-screen overflow-y-auto"
             style={{ height: '100vh' }}
         >
             <div className="p-4 border-b border-slate-700" style={{ minWidth: '250px' }}>
