@@ -86,7 +86,7 @@ export default function TrendsView({ data }: TrendsViewProps) {
                         transition={{ delay: 0.2 }}
                     >
                         <Card className="border-0 shadow-sm">
-                            <CardContent className="pt-6">
+                            <CardContent className="pt-6 pb-2">
                                 <h6 className="text-gray-500 text-sm mb-3">
                                     Average Monthly Income
                                 </h6>
@@ -109,7 +109,7 @@ export default function TrendsView({ data }: TrendsViewProps) {
                         transition={{ delay: 0.3 }}
                     >
                         <Card className="border-0 shadow-sm">
-                            <CardContent className="pt-6">
+                            <CardContent className="pt-6 pb-2">
                                 <h6 className="text-gray-500 text-sm mb-3">
                                     Average Monthly Expenses
                                 </h6>
@@ -132,7 +132,7 @@ export default function TrendsView({ data }: TrendsViewProps) {
                         transition={{ delay: 0.4 }}
                     >
                         <Card className="border-0 shadow-sm">
-                            <CardContent className="pt-6">
+                            <CardContent className="pt-6 pb-2">
                                 <h6 className="text-gray-500 text-sm mb-3">
                                     Average Monthly Savings
                                 </h6>

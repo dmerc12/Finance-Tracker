@@ -70,7 +70,7 @@ export default function OverviewView({ data, totals }: OverviewViewProps) {
                     transition={{ delay: 0.1 }}
                 >
                     <Card className="border-0 shadow-sm h-full">
-                        <CardContent className="pt-6">
+                        <CardContent className="pt-6 pb-4">
                             <div className="flex justify-between items-start mb-2">
                                 <h6 className="text-gray-500 text-sm mb-0">Total Income</h6>
                                 <div className="bg-green-100 text-green-600 rounded p-2">
@@ -93,7 +93,7 @@ export default function OverviewView({ data, totals }: OverviewViewProps) {
                     transition={{ delay: 0.2 }}
                 >
                     <Card className="border-0 shadow-sm h-full">
-                        <CardContent className="pt-6">
+                        <CardContent className="pt-6 pb-4">
                             <div className="flex justify-between items-start mb-2">
                                 <h6 className="text-gray-500 text-sm mb-0">Total Expenses</h6>
                                 <div className="bg-red-100 text-red-600 rounded p-2">
@@ -116,7 +116,7 @@ export default function OverviewView({ data, totals }: OverviewViewProps) {
                     transition={{ delay: 0.3 }}
                 >
                     <Card className="border-0 shadow-sm h-full">
-                        <CardContent className="pt-6">
+                        <CardContent className="pt-6 pb-4">
                             <div className="flex justify-between items-start mb-2">
                                 <h6 className="text-gray-500 text-sm mb-0">Net Savings</h6>
                                 <div className="bg-blue-100 text-blue-600 rounded p-2">
@@ -140,7 +140,7 @@ export default function OverviewView({ data, totals }: OverviewViewProps) {
                     transition={{ delay: 0.4 }}
                 >
                     <Card className="border-0 shadow-sm h-full">
-                        <CardContent className="pt-6">
+                        <CardContent className="pt-6 pb-4">
                             <div className="flex justify-between items-start mb-2">
                                 <h6 className="text-gray-500 text-sm mb-0">Savings Rate</h6>
                                 <div className="bg-cyan-100 text-cyan-600 rounded p-2">

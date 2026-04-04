@@ -106,7 +106,7 @@ export default function CategoriesView() {
                     transition={{ delay: 0.3 }}
                 >
                     <Card className="border-0 shadow-sm">
-                        <CardContent className="pt-6">
+                        <CardContent className="pt-6 pb-4">
                             <h5 className="text-lg font-semibold mb-4">Category Details</h5>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                 {categoryExpenseData.map((category, index) => {
