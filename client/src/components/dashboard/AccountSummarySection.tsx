@@ -1,5 +1,5 @@
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import { AccountSummaryCard } from '../common';
+import AccountSummaryCard from './AccountSummaryCard';
 import type { Account } from '../../data';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';

@@ -1,4 +1,4 @@
-import { LoadingState } from '../common';
+import LoadingState from './LoadingState';
 
 export default function DashboardLoadingState() {
     return (

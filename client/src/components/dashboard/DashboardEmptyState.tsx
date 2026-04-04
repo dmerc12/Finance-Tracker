@@ -1,4 +1,4 @@
-import { EmptyState } from '../common';
+import EmptyState from './EmptyState';
 import { Wallet } from 'lucide-react';
 
 export default function DashboardEmptyState() {

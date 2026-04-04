@@ -1,5 +1,6 @@
 import { Wallet, ArrowUpRight, ArrowDownRight, TrendingUp, type LucideIcon } from 'lucide-react';
-import { StatsGrid, StatCard } from '../common';
+import StatsGrid from './StatsGrid';
+import StatCard from './StatCard';
 import { useMemo } from 'react';
 
 interface SummaryCardsProps {
