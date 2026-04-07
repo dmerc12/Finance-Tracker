@@ -68,7 +68,7 @@ const Analytics: React.FC = ({ hasData = true, isLoading = false }: AnalyticsPro
             {/* Controls Section */}
             <div className="bg-white border-b p-3">
                 <div className="container-fluid">
-                    <div className="grid grid-cols-1 md:grid-cols-[auto_auto_1fr_auto] gap-3 items-center">
+                    <div className="grid grid-cols-1 md:grid-cols-[auto_auto_1fr_auto] gap-3 items-center pb-5">
                         {/* View Type Selector */}
                         <div className="w-full md:w-auto">
                             <Label className="block text-xs text-gray-500 mb-1">View</Label>
