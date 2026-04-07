@@ -4,7 +4,7 @@ import { useState, useCallback } from 'react';
 export interface AccountFormData {
     name: string;
     type: 'Checking' | 'Savings' | 'Credit' | 'Investment';
-    balance: string;
+    balance: number;
     institution: string;
     accountNumber: string;
 }
@@ -18,14 +18,13 @@ export default function useManageAccounts() {
                 id: Math.max(...accounts.map((a) => a.id), 0) + 1,
                 name: formData.name,
                 type: formData.type,
-                balance: parseFloat(formData.balance),
+                balance: formData.balance,
                 institution: formData.institution,
                 accountNumber: formData.accountNumber,
                 lastUpdated: new Date().toISOString().split('T')[0],
                 archived: false,
             };
             setAccounts((prev) => [...prev, newAccount]);
-            return newAccount;
         },
         [accounts]
     );
@@ -38,7 +37,7 @@ export default function useManageAccounts() {
                           ...account,
                           name: formData.name,
                           type: formData.type,
-                          balance: parseFloat(formData.balance),
+                          balance: formData.balance,
                           institution: formData.institution,
                           accountNumber: formData.accountNumber,
                           lastUpdated: new Date().toISOString().split('T')[0],
