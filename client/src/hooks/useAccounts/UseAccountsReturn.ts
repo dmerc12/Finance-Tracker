@@ -1,4 +1,4 @@
-import type { AccountFormData } from '../../components/account';
+import type { AccountFormData } from '../../components/accounts';
 import type { SortOption } from './sort-option';
 import type { Account } from '../../data';
 
@@ -18,7 +18,7 @@ export default interface UseAccountsReturn {
     setShowRestoreModal: (show: boolean) => void;
     setShowBulkDeleteModal: (show: boolean) => void;
     setShowTransferModal: (show: boolean) => void;
-    // Selected account/accounts
+    // Selected accounts/account
     selectedAccount: Account | null;
     selectedAccounts: Set<number>;
     setSelectedAccount: (account: Account | null) => void;

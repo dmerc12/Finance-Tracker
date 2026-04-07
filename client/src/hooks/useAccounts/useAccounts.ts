@@ -1,4 +1,4 @@
-import type { AccountFormData } from '../../components/account';
+import type { AccountFormData } from '../../components/accounts';
 import type UseAccountsReturn from './UseAccountsReturn';
 import { useState, useMemo, useCallback } from 'react';
 import type { SortOption } from './sort-option';

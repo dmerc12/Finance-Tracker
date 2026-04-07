@@ -31,7 +31,7 @@ import {
     ArchiveAccountModal,
     RestoreAccountModal,
     TransferModal,
-} from '../components/account';
+} from '../components/accounts';
 import {
     Plus,
     Search,
