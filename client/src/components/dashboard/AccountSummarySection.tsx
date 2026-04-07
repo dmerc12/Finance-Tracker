@@ -1,9 +1,8 @@
-import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
-import AccountSummaryCard from './AccountSummaryCard';
+import { Card, CardContent, CardHeader, CardTitle, Button } from '../ui';
+import { AccountSummaryCard } from '../common';
 import type { Account } from '../../data';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
-import { Button } from '../ui/button';
 
 interface AccountSummarySectionProps {
     accounts: Account[];

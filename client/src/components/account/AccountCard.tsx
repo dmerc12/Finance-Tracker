@@ -85,7 +85,7 @@ export default function AccountCard({
             transition={{ delay: index * 0.05 }}
         >
             <Card className="hover:shadow-md transition-all cursor-pointer group">
-                <CardContent className="pt-6">
+                <CardContent className="pt-6 pb-4">
                     <div className="flex items-start justify-between mb-4">
                         <div className="flex items-start gap-3 flex-1">
                             <Checkbox
