@@ -1,9 +1,11 @@
+import React, { type ReactNode, useState } from 'react';
 import { Header, Sidebar } from '../components/layout';
-import { Outlet } from 'react-router-dom';
-import React, { useState } from 'react';
+import { Outlet, useLocation } from 'react-router-dom';
 
 const MainLayout: React.FC = () => {
     const [sidebarOpen, setSidebarOpen] = useState(true);
+    const [headerActions, setHeaderActions] = useState<ReactNode>(null);
+    const location = useLocation();
 
     const getPageTitle = () => {
         const path = location.pathname;
@@ -23,10 +25,11 @@ const MainLayout: React.FC = () => {
                     title={getPageTitle()}
                     sidebarOpen={sidebarOpen}
                     onToggleSidebar={() => setSidebarOpen(!sidebarOpen)}
+                    actions={headerActions}
                     userName="User" // TODO: replace with actual user name from auth
                 />
                 <main className="flex-1 p-6 overflow-y-auto">
-                    <Outlet />
+                    <Outlet context={{ setHeaderActions }} />
                 </main>
             </div>
         </div>

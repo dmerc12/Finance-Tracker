@@ -27,15 +27,19 @@ export default function Header({
 
             {actions && <div className="flex items-center gap-2">{actions}</div>}
 
-            <div className="flex items-center gap-2">
-                <span className="text-slate-600 hidden md:inline">Welcome back, {userName}!</span>
-                <div
-                    className="bg-blue-600 text-white rounded-full flex items-center justify-center w-10 h-10 
+            {!actions && (
+                <div className="flex items-center gap-2">
+                    <span className="text-slate-600 hidden md:inline">
+                        Welcome back, {userName}!
+                    </span>
+                    <div
+                        className="bg-blue-600 text-white rounded-full flex items-center justify-center w-10 h-10 
                         shrink-0"
-                >
-                    <User size={20} />
+                    >
+                        <User size={20} />
+                    </div>
                 </div>
-            </div>
+            )}
         </header>
     );
 }
