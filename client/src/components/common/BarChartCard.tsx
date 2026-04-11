@@ -10,13 +10,13 @@ import {
     ResponsiveContainer,
 } from 'recharts';
 
-interface BarSeriesConfig<T extends Record<string, unknown>> {
+interface BarSeriesConfig<T extends object> {
     dataKey: keyof T;
     name: string;
     color: string;
 }
 
-interface BarChartCardProps<T extends Record<string, unknown>> {
+interface BarChartCardProps<T extends object> {
     title: string;
     description?: string;
     data: T[];
@@ -29,7 +29,7 @@ interface BarChartCardProps<T extends Record<string, unknown>> {
     layout?: 'horizontal' | 'vertical';
 }
 
-export default function BarChartCard<T extends Record<string, unknown>>({
+export default function BarChartCard<T extends object>({
     title,
     description,
     data,

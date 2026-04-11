@@ -29,7 +29,7 @@ export default function useManageAccounts() {
         [accounts]
     );
 
-    const updateAccount = useCallback((id: number, formData: AccountFormData) => {
+    const updateAccount = useCallback((id: number, formData: Account) => {
         setAccounts((prev) =>
             prev.map((account) =>
                 account.id === id

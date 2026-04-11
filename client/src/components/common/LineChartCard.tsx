@@ -10,14 +10,14 @@ import {
     ResponsiveContainer,
 } from 'recharts';
 
-interface LineSeriesConfig<T extends Record<string, unknown>> {
+interface LineSeriesConfig<T extends object> {
     dataKey: keyof T;
     name: string;
     color: string;
     strokeWidth?: number;
 }
 
-interface LineChartCardProps<T extends Record<string, unknown>> {
+interface LineChartCardProps<T extends object> {
     title: string;
     description?: string;
     data: T[];
@@ -29,7 +29,7 @@ interface LineChartCardProps<T extends Record<string, unknown>> {
     showLegend?: boolean;
 }
 
-export default function LineChartCard<T extends Record<string, unknown>>({
+export default function LineChartCard<T extends object>({
     title,
     description,
     data,
