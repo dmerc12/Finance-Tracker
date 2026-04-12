@@ -1,10 +1,14 @@
-import { ArrowLeft, Receipt, Edit, Archive, Trash2, ArchiveRestore } from 'lucide-react';
+import { ArrowLeft, Receipt, Edit, Archive, Trash2, ArchiveRestore, Plus } from 'lucide-react';
+import { useManageAccounts, useAccountDetails, useManageTransactions } from '../hooks';
 import { mockBalanceHistory, mockMonthlyActivity, type Account } from '../data';
 import { Link, useParams, useOutletContext } from 'react-router-dom';
 import { Button, Badge, Card, CardContent } from '../components/ui';
-import { SimpleTransactionTable } from '../components/transactions';
-import { useManageAccounts, useAccountDetails } from '../hooks';
 import { useEffect, type ReactNode } from 'react';
+import {
+    SimpleTransactionTable,
+    CreateTransactionModal,
+    type TransactionFormData,
+} from '../components/transactions';
 import {
     EditAccountModal,
     DeleteAccountModal,
@@ -26,6 +30,8 @@ export default function AccountDetails() {
     const accountId = Number(id);
     const { accounts, updateAccount, deleteAccount } = useManageAccounts();
     const account = accounts.find((account) => account.id === accountId);
+    const { transactions: allTransactions } = useManageTransactions();
+    const { createTransaction } = useManageTransactions();
 
     const {
         showEditModal,
@@ -46,9 +52,11 @@ export default function AccountDetails() {
         handleDeleteAccount,
         handleArchiveAccount,
         handleRestoreAccount,
+        showAddTransactionModal,
+        setShowAddTransactionModal,
     } = useAccountDetails({
         account: account,
-        transactions: [],
+        allTransactions: allTransactions,
         onAccountUpdate: (updatedAccount) => updateAccount(accountId, updatedAccount),
         onAccountDelete: () => deleteAccount(accountId),
     });
@@ -62,6 +70,10 @@ export default function AccountDetails() {
         // Build action buttons for header
         const actions = (
             <>
+                <Button onClick={() => setShowAddTransactionModal(true)}>
+                    <Plus size={16} className="mr-2" />
+                    Add Transaction
+                </Button>
                 <Button onClick={() => setShowEditModal(true)}>
                     <Edit size={16} className="mr-2" />
                     Edit
@@ -100,6 +112,7 @@ export default function AccountDetails() {
         setShowRestoreModal,
         setShowArchiveModal,
         setShowDeleteModal,
+        setShowAddTransactionModal,
     ]);
 
     if (!account) {
@@ -129,6 +142,11 @@ export default function AccountDetails() {
             lastUpdated: new Date().toISOString().split('T')[0],
         };
         handleEditAccount(updatedAccount);
+    };
+
+    const handleCreateTransaction = (formData: TransactionFormData) => {
+        createTransaction(formData);
+        setShowAddTransactionModal(false);
     };
 
     return (
@@ -194,7 +212,7 @@ export default function AccountDetails() {
             </div>
             {/* Recent Transactions */}
             <Card className="border-0 shadow-sm">
-                <CardContent className="pt-6">
+                <CardContent className="pt-6 pb-4">
                     <div className="flex justify-between items-center mb-4">
                         <h5 className="text-lg font-semibold flex items-center gap-2">
                             Recent Transactions
@@ -224,7 +242,7 @@ export default function AccountDetails() {
                                 animationDelay={0.55}
                             />
                             {transactionCount > 5 && (
-                                <div className="text-center pt-3 border-t mt-4">
+                                <div className="text-center pt-3 border-t mt-4 mb-4">
                                     {transactionsToShow < transactionCount ? (
                                         <Button
                                             variant="outline"
@@ -252,6 +270,13 @@ export default function AccountDetails() {
                 </CardContent>
             </Card>
             {/* Modals */}
+            <CreateTransactionModal
+                open={showAddTransactionModal}
+                onOpenChange={setShowAddTransactionModal}
+                onConfirm={handleCreateTransaction}
+                accounts={accounts}
+                defaultAccountId={account.id}
+            />
             <EditAccountModal
                 open={showEditModal}
                 onOpenChange={setShowEditModal}

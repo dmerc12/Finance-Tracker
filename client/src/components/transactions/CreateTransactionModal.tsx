@@ -16,6 +16,7 @@ interface CreateTransactionModalProps {
     onOpenChange: (open: boolean) => void;
     onConfirm: (formData: TransactionFormData) => void;
     accounts: Account[];
+    defaultAccountId?: number;
 }
 
 export default function CreateTransactionModal({
@@ -23,8 +24,10 @@ export default function CreateTransactionModal({
     onOpenChange,
     onConfirm,
     accounts,
+    defaultAccountId,
 }: CreateTransactionModalProps) {
     const { formData, setFormData, errors, handleSubmit, handleClose } = useTransactionModal({
+        initialData: defaultAccountId ? { accountId: defaultAccountId } : undefined,
         onSubmit: (data) => {
             onConfirm(data);
             onOpenChange(false);
@@ -46,6 +49,7 @@ export default function CreateTransactionModal({
                     onChange={setFormData}
                     errors={errors}
                     accounts={accounts}
+                    disableAccount={!!defaultAccountId}
                 />
                 <DialogFooter>
                     <Button onClick={handleClose} variant="outline">

@@ -1,8 +1,8 @@
-import type { Account, SimpleTransaction } from '../../data';
+import type { Account, Transaction } from '../../data';
 
 export default interface UseAccountDetailsOptions {
     account: Account | undefined;
-    transactions: SimpleTransaction[];
+    allTransactions: Transaction[];
     onAccountUpdate?: (account: Account) => void;
     onAccountDelete?: () => void;
 }

@@ -1,4 +1,3 @@
-export type { Transaction, SimpleTransaction } from './mockTransactions';
 export { mockAccounts, mockAccountsSimple } from './mockAccounts';
 export type { Account } from './mockAccounts';
 export type {
@@ -19,11 +18,7 @@ export {
     mockMonthlyActivity,
     salesData,
 } from './mockAnalytics';
-export {
-    mockTransactions,
-    mockRecentTransactions,
-    mockAccountTransactions,
-} from './mockTransactions';
+export { type Transaction, mockTransactions, mockRecentTransactions } from './mockTransactions';
 export {
     incomeCategories,
     expenseCategories,

@@ -10,7 +10,7 @@ import type { Account } from '../../data';
  */
 export default function useAccountDetails({
     account,
-    transactions,
+    allTransactions,
     onAccountUpdate,
     onAccountDelete,
 }: UseAccountDetailsOptions): UseAccountDetailsReturn {
@@ -21,14 +21,15 @@ export default function useAccountDetails({
     const [showDeleteModal, setShowDeleteModal] = useState(false);
     const [showArchiveModal, setShowArchiveModal] = useState(false);
     const [showRestoreModal, setShowRestoreModal] = useState(false);
+    const [showAddTransactionModal, setShowAddTransactionModal] = useState(false);
 
     // Transaction display state
     const [transactionsToShow, setTransactionsToShow] = useState(5);
 
     // Filter transactions for this account
     const accountTransactions = useMemo(
-        () => transactions.filter((t) => t.accountId === account?.id),
-        [transactions, account?.id]
+        () => allTransactions.filter((t) => t.accountId === account?.id),
+        [allTransactions, account?.id]
     );
 
     // Displayed transactions (sliced based on transactionsToShow)
@@ -106,10 +107,12 @@ export default function useAccountDetails({
         showDeleteModal,
         showArchiveModal,
         showRestoreModal,
+        showAddTransactionModal,
         setShowEditModal,
         setShowDeleteModal,
         setShowArchiveModal,
         setShowRestoreModal,
+        setShowAddTransactionModal,
 
         // Transaction display
         transactionsToShow,

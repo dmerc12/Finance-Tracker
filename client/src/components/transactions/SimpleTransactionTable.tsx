@@ -1,15 +1,7 @@
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { DataTable, type ColumnDef } from '../common';
-import { Badge } from '../ui/badge';
-
-interface Transaction {
-    id: number;
-    description: string;
-    amount: number;
-    type: 'income' | 'expense';
-    category: string;
-    date: string;
-}
+import type { Transaction } from '../../data';
+import { Badge } from '../ui';
 
 interface SimpleTransactionTableProps {
     transactions: Transaction[];

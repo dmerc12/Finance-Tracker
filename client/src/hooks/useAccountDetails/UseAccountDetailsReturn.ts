@@ -1,4 +1,4 @@
-import type { SimpleTransaction, Account } from '../../data';
+import type { Account, Transaction } from '../../data';
 
 export default interface UseAccountDetailsReturn {
     // Modal States
@@ -6,14 +6,16 @@ export default interface UseAccountDetailsReturn {
     showDeleteModal: boolean;
     showArchiveModal: boolean;
     showRestoreModal: boolean;
+    showAddTransactionModal: boolean;
     setShowEditModal: (show: boolean) => void;
     setShowDeleteModal: (show: boolean) => void;
     setShowArchiveModal: (show: boolean) => void;
     setShowRestoreModal: (show: boolean) => void;
+    setShowAddTransactionModal: (show: boolean) => void;
 
     // Transaction Display
     transactionsToShow: number;
-    displayedTransactions: SimpleTransaction[];
+    displayedTransactions: Transaction[];
     setTransactionsToShow: (count: number) => void;
 
     // Calculations

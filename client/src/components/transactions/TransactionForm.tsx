@@ -22,6 +22,7 @@ interface TransactionFormProps {
     onChange: (data: TransactionFormData) => void;
     errors?: Record<string, string>;
     accounts: Account[];
+    disableAccount?: boolean;
 }
 
 // Use centralized category function
@@ -32,6 +33,7 @@ export default function TransactionForm({
     onChange,
     errors = {},
     accounts,
+    disableAccount = false,
 }: TransactionFormProps) {
     const updateFormData = (updates: Partial<TransactionFormData>) => {
         onChange({ ...formData, ...updates });
@@ -165,6 +167,7 @@ export default function TransactionForm({
                     <Select
                         value={formData.accountId.toString()}
                         onValueChange={(value) => updateFormData({ accountId: parseInt(value) })}
+                        disabled={disableAccount}
                     >
                         <SelectTrigger className={errors.accountId ? 'border-red-500' : ''}>
                             <SelectValue placeholder="Select account" />
@@ -195,7 +198,7 @@ export default function TransactionForm({
                             <SelectValue placeholder="Select destination account" />
                         </SelectTrigger>
                         <SelectContent>
-                            {accounts
+                            {activeAccounts
                                 .filter((acc) => acc.id !== formData.accountId)
                                 .map((acc) => (
                                     <SelectItem key={acc.id} value={acc.id.toString()}>
