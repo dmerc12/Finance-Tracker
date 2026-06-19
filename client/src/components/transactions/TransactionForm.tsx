@@ -1,6 +1,7 @@
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
 import { ArrowUpRight, ArrowDownRight, ArrowRightLeft } from 'lucide-react';
-import { getCategoriesForType, type Account } from '../../data';
+import { getCategoriesForType } from '../../data';
+import { type Account } from '../../types';
 import { Button } from '../ui/button';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';

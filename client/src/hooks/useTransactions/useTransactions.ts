@@ -1,13 +1,9 @@
+import { incomeCategories, expenseCategories, transferCategory } from '../../data';
 import type { UseTransactionsReturn } from './UseTransactionsReturn';
 import { useState, useMemo, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import type { SortOption } from './SortOption';
-import {
-    type Transaction,
-    incomeCategories,
-    expenseCategories,
-    transferCategory,
-} from '../../data';
+import { type Transaction } from '../../types';
 
 export interface UseTransactionsOptions {
     transactions: Transaction[];

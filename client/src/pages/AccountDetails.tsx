@@ -1,9 +1,10 @@
 import { ArrowLeft, Receipt, Edit, Archive, Trash2, ArchiveRestore, Plus } from 'lucide-react';
 import { useManageAccounts, useAccountDetails, useManageTransactions } from '../hooks';
-import { mockBalanceHistory, mockMonthlyActivity, type Account } from '../data';
 import { Link, useParams, useOutletContext } from 'react-router-dom';
 import { Button, Badge, Card, CardContent } from '../components/ui';
+import { mockBalanceHistory, mockMonthlyActivity } from '../data';
 import { useEffect, type ReactNode } from 'react';
+import type { Account } from '../types';
 import {
     SimpleTransactionTable,
     CreateTransactionModal,
@@ -14,7 +15,6 @@ import {
     DeleteAccountModal,
     ArchiveAccountModal,
     RestoreAccountModal,
-    type AccountFormData,
 } from '../components/accounts';
 import {
     AccountSummaryCard,
@@ -131,7 +131,7 @@ export default function AccountDetails() {
         );
     }
 
-    const handleEditAccountWrapper = (formData: AccountFormData) => {
+    const handleEditAccountWrapper = (formData: Account) => {
         const updatedAccount: Account = {
             ...account,
             name: formData.name,
@@ -286,21 +286,21 @@ export default function AccountDetails() {
             <DeleteAccountModal
                 open={showDeleteModal}
                 onOpenChange={setShowDeleteModal}
-                accountId={account.id}
+                accountId={account.id ? account.id : -1}
                 accountName={account.name}
                 onConfirm={handleDeleteAccount}
             />
             <ArchiveAccountModal
                 open={showArchiveModal}
                 onOpenChange={setShowArchiveModal}
-                accountId={account.id}
+                accountId={account.id ? account.id : -1}
                 accountName={account.name}
                 onConfirm={handleArchiveAccount}
             />
             <RestoreAccountModal
                 open={showRestoreModal}
                 onOpenChange={setShowRestoreModal}
-                accountId={account.id}
+                accountId={account.id ? account.id : -1}
                 accountName={account.name}
                 onConfirm={handleRestoreAccount}
             />

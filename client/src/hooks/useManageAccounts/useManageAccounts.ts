@@ -1,19 +1,12 @@
-import { type Account, mockAccounts as initialAccounts } from '../../data';
+import { mockAccounts as initialAccounts } from '../../data';
 import { useState, useCallback } from 'react';
-
-export interface AccountFormData {
-    name: string;
-    type: 'Checking' | 'Savings' | 'Credit' | 'Investment';
-    balance: number;
-    institution: string;
-    accountNumber: string;
-}
+import { type Account } from '../../types';
 
 export default function useManageAccounts() {
     const [accounts, setAccounts] = useState<Account[]>(initialAccounts);
 
     const createAccount = useCallback(
-        (formData: AccountFormData) => {
+        (formData: Account) => {
             const newAccount: Account = {
                 id: Math.max(...accounts.map((a) => a.id), 0) + 1,
                 name: formData.name,

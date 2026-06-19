@@ -1,12 +1,13 @@
-import AccountForm, { type AccountFormData } from './AccountForm';
 import validate from './accountValidation';
+import { type Account } from '../../types';
+import AccountForm from './AccountForm';
 import { FormDialog } from '../common';
 import { useState } from 'react';
 
 interface CreateAccountModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    onConfirm: (data: AccountFormData) => void;
+    onConfirm: (data: Account) => void;
 }
 
 export default function CreateAccountModal({
@@ -14,12 +15,14 @@ export default function CreateAccountModal({
     onOpenChange,
     onConfirm,
 }: CreateAccountModalProps) {
-    const [formData, setFormData] = useState<AccountFormData>({
+    const [formData, setFormData] = useState<Account>({
+        id: -1,
         name: '',
         type: 'Checking',
         balance: 0,
         institution: '',
         accountNumber: '',
+        lastUpdated: '',
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -35,11 +38,13 @@ export default function CreateAccountModal({
 
     const handleClose = () => {
         setFormData({
+            id: -1,
             name: '',
             type: 'Checking',
             balance: 0,
             institution: '',
             accountNumber: '',
+            lastUpdated: '',
         });
         setErrors({});
         onOpenChange(false);

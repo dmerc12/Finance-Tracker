@@ -4,7 +4,6 @@ export { useTransactionModal } from './useTransactionModal';
 export { useAccountDetails } from './useAccountDetails';
 export { useManageAccounts } from './useManageAccounts';
 export { useTransactions } from './useTransactions';
-export type { SortOption } from './useAccounts';
 export { useAnalytics } from './useAnalytics';
 export { useSettings } from './useSettings';
 export { useAccounts } from './useAccounts';

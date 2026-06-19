@@ -1,5 +1,6 @@
-import { monthlyTrendData, type MonthlyTrendData } from '../../data';
+import type { MonthlyTrendData } from '../../types';
 import { Card, CardContent } from '../ui/card';
+import { monthlyTrendData } from '../../data';
 import { motion } from 'motion/react';
 import { Badge } from '../ui/badge';
 import {

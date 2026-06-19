@@ -1,10 +1,7 @@
+import { mockTransactions as initialTransactions, mockAccounts as accountsData } from '../../data';
 import type { TransactionFormData } from '../../components/transactions';
+import { type Transaction } from '../../types';
 import { useState, useCallback } from 'react';
-import {
-    type Transaction,
-    mockTransactions as initialTransactions,
-    mockAccounts as accountsData,
-} from '../../data';
 
 export default function useManageTransactions() {
     const [transactions, setTransactions] = useState<Transaction[]>(initialTransactions);

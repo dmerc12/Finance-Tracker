@@ -1,7 +1,7 @@
 import { DataTable, type ColumnDef, type DataTableAction } from '../common';
 import { Eye, Edit, Trash2, Receipt } from 'lucide-react';
 import TransactionIcon from './TransactionIcon';
-import type { Transaction } from '../../data';
+import type { Transaction } from '../../types';
 import AmountDisplay from './AmountDisplay';
 import { Badge } from '../ui';
 

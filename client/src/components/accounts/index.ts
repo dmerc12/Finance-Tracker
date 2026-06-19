@@ -6,7 +6,6 @@ import EditAccountModal from './EditAccountModal';
 import TransferModal from './TransferModal';
 import AccountCard from './AccountCard';
 
-export type { AccountFormData } from './AccountForm';
 export {
     ArchiveAccountModal,
     RestoreAccountModal,

@@ -1,4 +1,5 @@
-import { type Transaction, mockAccountsSimple } from '../../data';
+import { mockAccountsSimple } from '../../data';
+import { type Transaction } from '../../types';
 import { ArrowUpDown, X } from 'lucide-react';
 import { Search } from 'lucide-react';
 import {

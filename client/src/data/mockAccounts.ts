@@ -1,21 +1,11 @@
+import { type Account } from '../types';
+
 /**
  * Mock Account Data
  *
  * Central location for all mock account data used throughout the application.
  * Update this file when building the API to easily swap mock data for real API calls.
  */
-
-export interface Account {
-    id: number;
-    name: string;
-    type: 'Checking' | 'Savings' | 'Credit' | 'Investment';
-    balance: number;
-    institution?: string;
-    accountNumber?: string;
-    lastUpdated: string;
-    archived?: boolean;
-    icon?: string;
-}
 
 export const mockAccounts: Account[] = [
     {

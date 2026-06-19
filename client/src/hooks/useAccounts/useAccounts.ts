@@ -1,13 +1,11 @@
-import type { AccountFormData } from '../../components/accounts';
 import type UseAccountsReturn from './UseAccountsReturn';
 import { useState, useMemo, useCallback } from 'react';
-import type { SortOption } from './sort-option';
-import type { Account } from '../../data';
+import type { Account, SortOption } from '../../types';
 
 export interface UseAccountsOptions {
     accounts: Account[];
-    onCreateAccount?: (data: AccountFormData) => void;
-    onEditAccount?: (id: number, data: AccountFormData) => void;
+    onCreateAccount?: (data: Account) => void;
+    onEditAccount?: (id: number, data: Account) => void;
     onDeleteAccount?: (id: number) => void;
     onArchiveAccount?: (id: number) => void;
     onRestoreAccount?: (id: number) => void;
@@ -120,7 +118,7 @@ export default function useAccounts({
     }, []);
 
     const handleCreateAccount = useCallback(
-        (data: AccountFormData) => {
+        (data: Account) => {
             onCreateAccount?.(data);
             setShowCreateModal(false);
         },
@@ -128,7 +126,7 @@ export default function useAccounts({
     );
 
     const handleEditAccount = useCallback(
-        (id: number, data: AccountFormData) => {
+        (id: number, data: Account) => {
             onEditAccount?.(id, data);
             setShowEditModal(false);
             setSelectedAccount(null);

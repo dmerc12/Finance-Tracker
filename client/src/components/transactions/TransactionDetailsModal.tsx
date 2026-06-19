@@ -1,5 +1,5 @@
 import TransactionIcon from './TransactionIcon';
-import type { Transaction } from '../../data';
+import type { Transaction } from '../../types';
 import AmountDisplay from './AmountDisplay';
 import {
     Dialog,

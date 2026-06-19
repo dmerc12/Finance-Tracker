@@ -1,6 +1,6 @@
-import type { AccountFormData } from './AccountForm';
+import type { Account } from '../../types';
 
-export default function validate(formData: AccountFormData): {
+export default function validate(formData: Account): {
     isValid: boolean;
     errors: Record<string, string>;
 } {

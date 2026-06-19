@@ -1,8 +1,13 @@
-import type { ReportType, ViewType, TimeRange } from './analytics-types';
-import type { MonthlyTrendData, CategoryData } from '../../data';
 import type UseAnalyticsReturn from './UseAnalyticsReturn';
 import { useState, useMemo, useCallback } from 'react';
-import type CustomDateRange from './CustomDateRange';
+import type {
+    MonthlyTrendData,
+    CategoryData,
+    ReportType,
+    ViewType,
+    TimeRange,
+    CustomDateRange,
+} from '../../types';
 
 export interface UseAnalyticsOptions {
     monthlyTrendData: MonthlyTrendData[];

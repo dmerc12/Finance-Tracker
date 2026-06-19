@@ -1,14 +1,14 @@
-import AccountForm, { type AccountFormData } from './AccountForm';
 import { useState, useEffect } from 'react';
 import validate from './accountValidation';
-import type { Account } from '../../data';
+import type { Account } from '../../types';
+import AccountForm from './AccountForm';
 import { FormDialog } from '../common';
 
 interface EditAccountModalProps {
     open: boolean;
     onOpenChange: (open: boolean) => void;
     account: Account | null;
-    onConfirm: (data: AccountFormData) => void;
+    onConfirm: (data: Account) => void;
 }
 
 export default function EditAccountModal({
@@ -17,12 +17,14 @@ export default function EditAccountModal({
     account,
     onConfirm,
 }: EditAccountModalProps) {
-    const [formData, setFormData] = useState<AccountFormData>({
+    const [formData, setFormData] = useState<Account>({
+        id: -1,
         name: '',
         type: 'Checking',
         balance: 0,
         institution: '',
         accountNumber: '',
+        lastUpdated: '',
     });
     const [errors, setErrors] = useState<Record<string, string>>({});
 
@@ -30,11 +32,13 @@ export default function EditAccountModal({
         if (open && account) {
             // eslint-disable-next-line react-hooks/set-state-in-effect
             setFormData({
+                id: account.id,
                 name: account.name,
-                type: account.type as AccountFormData['type'],
+                type: account.type as Account['type'],
                 balance: account.balance,
                 institution: account.institution || '',
                 accountNumber: account.accountNumber || '',
+                lastUpdated: account.lastUpdated || '',
             });
             setErrors({});
         }

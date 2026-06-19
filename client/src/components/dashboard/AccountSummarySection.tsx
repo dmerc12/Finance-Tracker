@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle, Button } from '../ui';
 import { AccountSummaryCard } from '../common';
-import type { Account } from '../../data';
+import type { Account } from '../../types';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 

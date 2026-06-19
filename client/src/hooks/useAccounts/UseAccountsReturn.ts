@@ -1,6 +1,4 @@
-import type { AccountFormData } from '../../components/accounts';
-import type { SortOption } from './sort-option';
-import type { Account } from '../../data';
+import type { Account, SortOption } from '../../types';
 
 export default interface UseAccountsReturn {
     // Modal states
@@ -53,8 +51,8 @@ export default interface UseAccountsReturn {
     toggleSelectAll: () => void;
     clearSelection: () => void;
     // Action handlers
-    handleCreateAccount: (data: AccountFormData) => void;
-    handleEditAccount: (id: number, data: AccountFormData) => void;
+    handleCreateAccount: (data: Account) => void;
+    handleEditAccount: (id: number, data: Account) => void;
     handleDeleteAccount: (id: number) => void;
     handleArchiveAccount: (id: number) => void;
     handleRestoreAccount: (id: number) => void;

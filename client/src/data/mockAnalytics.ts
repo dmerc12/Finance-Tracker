@@ -1,41 +1,17 @@
+import type {
+    MonthlyTrendData,
+    CategoryData,
+    ComparisonData,
+    BalanceHistoryData,
+    MonthlyActivityData,
+} from '../types';
+
 /**
  * Mock Analytics Data
  *
  * Central location for all mock analytics/chart data used throughout the application.
  * Update this file when building the API to easily swap mock data for real API calls.
  */
-
-export interface MonthlyTrendData {
-    month: string;
-    income: number;
-    expenses: number;
-    savings: number;
-}
-
-export interface CategoryData {
-    name: string;
-    value: number;
-    color: string;
-}
-
-export interface ComparisonData {
-    category: string;
-    lastMonth?: number;
-    thisMonth?: number;
-    year2025?: number;
-    year2026?: number;
-}
-
-export interface BalanceHistoryData {
-    date: string;
-    balance: number;
-}
-
-export interface MonthlyActivityData {
-    month: string;
-    income: number;
-    expenses: number;
-}
 
 /**
  * Monthly trend data for Analytics page

@@ -2,7 +2,7 @@ import type UseAccountDetailsOptions from './UseAccountDetailsOptions';
 import type UseAccountDetailsReturn from './UseAccountDetailsReturn';
 import { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { Account } from '../../data';
+import type { Account } from '../../types';
 
 /**
  * Custom hook for managing AccountDetails page state and logic

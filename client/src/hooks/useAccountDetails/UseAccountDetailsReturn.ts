@@ -1,4 +1,4 @@
-import type { Account, Transaction } from '../../data';
+import type { Account, Transaction } from '../../types';
 
 export default interface UseAccountDetailsReturn {
     // Modal States

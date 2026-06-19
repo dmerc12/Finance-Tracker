@@ -1,6 +1,6 @@
 import TransactionForm, { type TransactionFormData } from './TransactionForm';
 import { useTransactionModal } from '../../hooks';
-import type { Account } from '../../data';
+import type { Account } from '../../types';
 import {
     Dialog,
     DialogContent,

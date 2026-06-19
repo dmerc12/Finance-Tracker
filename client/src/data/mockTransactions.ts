@@ -1,23 +1,11 @@
+import { type Transaction } from '../types';
+
 /**
  * Mock Transaction Data
  *
  * Central location for all mock transaction data used throughout the application.
  * Update this file when building the API to easily swap mock data for real API calls.
  */
-
-export interface Transaction {
-    id: number;
-    description: string;
-    amount: number;
-    type: 'income' | 'expense' | 'transfer';
-    category: string;
-    accountId: number;
-    accountName: string;
-    date: string;
-    notes?: string;
-    toAccountId?: number;
-    toAccountName?: string;
-}
 
 /**
  * Full transaction dataset for Transactions page

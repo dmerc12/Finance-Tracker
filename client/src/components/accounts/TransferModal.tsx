@@ -1,5 +1,5 @@
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem, Input, Label } from '../ui';
-import type { Account } from '../../data';
+import type { Account } from '../../types';
 import { FormDialog } from '../common';
 import { useState } from 'react';
 

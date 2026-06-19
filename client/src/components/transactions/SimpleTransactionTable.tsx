@@ -1,6 +1,6 @@
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
 import { DataTable, type ColumnDef } from '../common';
-import type { Transaction } from '../../data';
+import type { Transaction } from '../../types';
 import { Badge } from '../ui';
 
 interface SimpleTransactionTableProps {

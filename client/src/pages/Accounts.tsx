@@ -1,8 +1,8 @@
-import { useAccounts, useManageAccounts, type SortOption } from '../hooks';
 import { StatsGrid, StatCard } from '../components/common';
+import { useAccounts, useManageAccounts } from '../hooks';
 import React, { useEffect, type ReactNode } from 'react';
 import { useOutletContext } from 'react-router-dom';
-import type { Account } from '../data';
+import type { Account, SortOption } from '../types';
 import {
     Select,
     SelectTrigger,

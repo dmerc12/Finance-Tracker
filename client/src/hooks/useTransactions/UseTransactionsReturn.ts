@@ -1,5 +1,5 @@
 import type { SortOption } from './SortOption';
-import type { Transaction } from '../../data';
+import type { Transaction } from '../../types';
 
 export interface UseTransactionsReturn {
     // Transactions data

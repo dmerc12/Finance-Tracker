@@ -1,5 +1,5 @@
 import { ArrowUpRight, ArrowDownRight } from 'lucide-react';
-import type { Transaction } from '../../data';
+import type { Transaction } from '../../types';
 import { motion } from 'motion/react';
 import { memo } from 'react';
 

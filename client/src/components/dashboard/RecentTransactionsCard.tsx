@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import TransactionItem from './TransactionItem';
-import type { Transaction } from '../../data';
+import type { Transaction } from '../../types';
 import { Link } from 'react-router-dom';
 import { motion } from 'motion/react';
 import { Button } from '../ui/button';

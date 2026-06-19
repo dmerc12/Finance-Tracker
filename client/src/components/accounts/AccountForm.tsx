@@ -1,32 +1,27 @@
 import { Select, SelectTrigger, SelectValue, SelectContent, SelectItem } from '../ui/select';
+import { type Account } from '../../types';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { useState } from 'react';
 
-export interface AccountFormData {
-    name: string;
-    type: 'Checking' | 'Savings' | 'Credit' | 'Investment';
-    balance: number;
-    institution: string;
-    accountNumber: string;
-}
-
 interface AccountFormProps {
-    initialData?: Partial<AccountFormData>;
-    onChange: (data: AccountFormData) => void;
+    initialData?: Partial<Account>;
+    onChange: (data: Account) => void;
     errors?: Record<string, string>;
 }
 
 export default function AccountForm({ initialData, onChange, errors = {} }: AccountFormProps) {
-    const [formData, setFormData] = useState<AccountFormData>({
+    const [formData, setFormData] = useState<Account>({
+        id: initialData?.id || -1,
         name: initialData?.name || '',
         type: initialData?.type || 'Checking',
         balance: initialData?.balance || 0,
         institution: initialData?.institution || '',
         accountNumber: initialData?.accountNumber || '',
+        lastUpdated: initialData?.lastUpdated || '',
     });
 
-    const handleChange = (field: keyof AccountFormData, value: string | number) => {
+    const handleChange = (field: keyof Account, value: string | number) => {
         const newData = { ...formData, [field]: value };
         setFormData(newData);
         onChange(newData);
@@ -54,9 +49,7 @@ export default function AccountForm({ initialData, onChange, errors = {} }: Acco
                 </Label>
                 <Select
                     value={formData.type}
-                    onValueChange={(value) =>
-                        handleChange('type', value as AccountFormData['type'])
-                    }
+                    onValueChange={(value) => handleChange('type', value as Account['type'])}
                 >
                     <SelectTrigger id="accountType">
                         <SelectValue />

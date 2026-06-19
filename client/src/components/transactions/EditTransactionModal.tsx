@@ -1,5 +1,5 @@
 import TransactionForm, { type TransactionFormData } from './TransactionForm';
-import type { Account, Transaction } from '../../data';
+import type { Account, Transaction } from '../../types';
 import { useTransactionModal } from '../../hooks';
 import {
     Dialog,
