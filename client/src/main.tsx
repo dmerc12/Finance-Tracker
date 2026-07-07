@@ -4,9 +4,10 @@ import { Provider } from 'react-redux';
 import { store } from './store';
 import App from './App.tsx';
 
-import 'bootstrap/dist/css/bootstrap.min.css';
-import 'bootstrap/dist/js/bootstrap.min.js';
-import './index.css';
+import './styles/tailwind.css';
+import './styles/fonts.css';
+import './styles/theme.css';
+import './styles/index.css';
 
 createRoot(document.getElementById('root')!).render(
     <StrictMode>
