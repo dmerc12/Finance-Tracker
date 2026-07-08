@@ -1,5 +1,5 @@
 # Build stage
-FROM eclipse-temurin:24.0.1-jdk-alpine AS build
+FROM eclipse-temurin:24-jdk-alpine AS build
 WORKDIR /app
 
 # Copy maven files
@@ -18,7 +18,7 @@ RUN ./mvnw dependency:go-offline -B
 RUN ./mvnw package -DskipTests -B
 
 # Runtime stage
-FROM eclipse-temurin:24.0.1-jre-alpine
+FROM eclipse-temurin:24-jre-alpine
 WORKDIR /app
 
 # Create a non-root user to run the application

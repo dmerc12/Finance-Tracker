@@ -1,0 +1,81 @@
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: finance-tracker-postgres
+    environment:
+      POSTGRES_DB: finance-tracker
+      POSTGRES_USER: finance-tracker
+      POSTGRES_PASSWORD: finance-tracker
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U finance-tracker"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+  # Spring Boot API
+  api:
+    build:
+      context: ./api
+      dockerfile: Dockerfile
+    container_name: finance-tracker-api
+    env_file:
+      - ./.env
+    environment:
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: finance-tracker
+      DB_USERNAME: finance-tracker
+      DB_PASSWORD: finance-tracker
+      PORT: 8080
+      SHOW_SQL: "true"
+      SPRING_PROFILES_ACTIVE: dev
+    ports:
+      - "8080:8080"
+    volumes:
+      - api_logs:/app/logs
+    depends_on:
+      postgres:
+        condition: service_healthy
+    healthcheck:
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 4
+      start_period: 60s
+  # React UI (Development)
+  ui-dev:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      target: development
+    container_name: finance-tracker-dev
+    environment:
+      VITE_API_URL: http://localhost:8080
+    ports:
+      - "5173:5173"
+    volumes:
+      - ./client:/app
+      - /app/node_modules
+    depends_on:
+      - api
+  # React UI (production build with nginx) - for testing production build locally
+  ui-prod:
+    build:
+      context: ./client
+      dockerfile: Dockerfile
+      target: production
+      args:
+        VITE_API_URL: http://localhost:8080
+    container_name: finance-tracker-prod
+    ports:
+      - "80:80"
+    depends_on:
+      - api
+
+volumes:
+  postgres_data:
+  api_logs:
