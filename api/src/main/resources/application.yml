@@ -1,6 +1,14 @@
 spring:
   profiles:
     active: dev # default profile
+logging:
+  level:
+    com.dmerc12: DEBUG
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus
 
 ---
 # Development profile
@@ -15,6 +23,12 @@ spring:
     hikari:
       maximum-pool-size: 5
       minimum-idle: 2
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    baseline-version: 0
+    locations: classpath:db/migration
+    validate-on-migrate: false
   jpa:
     hibernate:
       ddl-auto: validate
@@ -23,11 +37,7 @@ spring:
       hibernate:
         format_sql: true
         dialect: org.hibernate.dialect.PostgreSQLDialect
-  flyway:
-    enabled: true
-    baseline-on-migrate: true
-    baseline-version: 0
-    locations: classpath:db/migration
+
 
 management:
   endpoints:
@@ -66,12 +76,13 @@ spring:
     password: ${DB_PASSWORD:finance-tracker}
     hikari:
       maximum-pool-size: 10
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
   flyway:
     enabled: true
     baseline-on-migrate: true
     baseline-version: 0
     locations: classpath:db/migration
+    validate-on-migrate: false
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
