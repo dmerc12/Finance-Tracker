@@ -12,7 +12,8 @@ import org.springframework.context.annotation.Configuration;
  * Configuration class for OpenAPI (Swagger) documentation.
  * <p>This class configures the OpenAPI specification for the Finance Tracker API,
  * providing interactive API documentation via Swagger UI and generating machine-readable OpenAPI JSON.
- * <p>The OpenAPI documentation is automatically at the following endpoints (when {@code springdoc.api-docs.enabled} is true):
+ * <p>The OpenAPI documentation is automatically at the following endpoints
+ * (when {@code springdoc.api-docs.enabled} is true):
  * <ul>
  *     <li><b>Swagger UI:</b> {@code /swagger-ui.html}</li>
  *     <li><b>OpenAPI JSON:</b> {@code /v3/api-docs}</li>
@@ -29,6 +30,8 @@ import org.springframework.context.annotation.Configuration;
  */
 @Configuration
 public class OpenAPIConfig {
+
+    private static final String REPO_URL = "https://github.com/dmerc12/Finance-Tracker";
 
     /**
      * Creates and configures the custom OpenAPI metadata for the Finance Tracker API.
@@ -60,7 +63,7 @@ public class OpenAPIConfig {
                         .contact(new Contact()
                                 .name("Dylan Mercer")
                                 .email("dylanmercer12@outlook.com")
-                                .url("https://github.com/dmerc12/Finance-Tracker"))
+                                .url(REPO_URL))
                         .license(new License()
                                 .name("MIT License")
                                 .url("https://opensource.org/licenses/MIT")));

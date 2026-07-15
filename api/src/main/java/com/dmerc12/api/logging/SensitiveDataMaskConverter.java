@@ -45,7 +45,8 @@ public class SensitiveDataMaskConverter extends ClassicConverter {
      * </ul>
      */
     private static final Pattern SENSITIVE_PATTERN = Pattern.compile(
-            "(?i)(password|token|ssn|creditcard|cardnumber|cvv|pin)[\"']?\\s*[:=]\\s*[\"']?[^\"',\\s]+"
+            "(?i)(password|token|ssn|routingnumber|accountnumber|cardnumber|cvv|pin)" +
+                    "\\s*[:=]\\s*(?:\"[^\"]*\"|'[^']*'|[^\"',\\s]+)"
     );
 
     /**
