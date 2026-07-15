@@ -1,4 +1,4 @@
-export { login, register, logout, getCurrentUser } from './authService';
+export { authService } from './authService';
 export {
     getAccounts,
     getAccount,

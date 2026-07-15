@@ -9,6 +9,9 @@ management:
     web:
       exposure:
         include: health,info,prometheus
+jwt:
+  secret: ${JWT_SECRET:defaultSecretKeyForDevOnly}
+  expiration: 86400000
 
 ---
 # Development profile
