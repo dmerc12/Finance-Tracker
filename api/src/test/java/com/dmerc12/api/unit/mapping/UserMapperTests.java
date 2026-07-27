@@ -133,7 +133,7 @@ public class UserMapperTests {
             assertThat(user.getLastName()).isEqualTo(registerRequest.getLastName());
             assertThat(user.getPasswordHash()).isEqualTo(hashedPassword);
             assertThat(user.getRoles()).hasSize(2);
-            assertThat(user.getRoles()).containsExactly(Role.ROLE_USER, Role.ROLE_ADMIN);
+            assertThat(user.getRoles()).containsExactlyInAnyOrder(Role.ROLE_USER, Role.ROLE_ADMIN);
             assertThat(user.isEnabled()).isTrue();
             assertThat(user.getId()).isNull();
             assertThat(user.getCreatedAt()).isNull();

@@ -4,12 +4,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.validation.FieldError;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Global exception handler for the Finance Tracker API.
@@ -67,9 +70,89 @@ public class GlobalExceptionHandler {
         return new ResponseEntity<>(body, HttpStatus.INTERNAL_SERVER_ERROR);
     }
 
+    /**
+     * Handles {@link DuplicateResourceException} when a resource already exists.
+     * <p>Returns a 409 Conflict response with the exception message.
+     *
+     * @param ex the thrown exception
+     * @return a {@link ResponseEntity} with status 409 and a structured error body
+     */
+    @ExceptionHandler(DuplicateResourceException.class)
+    public ResponseEntity<Object> handleDuplicateResourceException(DuplicateResourceException ex) {
+        log.error("Duplicate resource exception occurred", ex);
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.CONFLICT.value());
+        body.put("error", "Duplicate Resource");
+        body.put("message", ex.getMessage());
+        return new ResponseEntity<>(body, HttpStatus.CONFLICT);
+    }
+
+    /**
+     * Handles {@link PasswordMismatchException} when password and confirmation do not match.
+     * <p>Returns a 400 Bad Request response with the exception message.
+     *
+     * @param ex the thrown exception
+     * @return a {@link ResponseEntity} with status 400 and a structured error body
+     */
+    @ExceptionHandler(PasswordMismatchException.class)
+    public ResponseEntity<Object> handlePasswordMismatchException(PasswordMismatchException ex) {
+        log.error("Password mismatch exception occurred", ex);
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.BAD_REQUEST.value());
+        body.put("error", "Password Mismatch");
+        body.put("message", ex.getMessage());
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Handles validation errors from {@code @Valid} request bodies.
+     * <p>Returns a 400 Bad Request response with a map of field-specific error messages.
+     *
+     * @param ex the thrown exception containing the binding results
+     * @return a {@link ResponseEntity} with status 400 and a structured error body including field errors
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Object> handleValidationExceptions(MethodArgumentNotValidException ex) {
+        log.error("Validation exception occurred", ex);
+        Map<String, String> fieldErrors = ex.getBindingResult()
+                .getFieldErrors()
+                .stream()
+                .filter(fe -> fe.getDefaultMessage() != null)
+                .collect(Collectors.toMap(
+                        FieldError::getField,
+                        FieldError::getDefaultMessage,
+                        (existing, replacement) -> existing
+                ));
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.BAD_REQUEST.value());
+        body.put("error", "Validation Failed");
+        body.put("message", "Invalid request payload");
+        body.put("fieldErrors", fieldErrors);
+        return new ResponseEntity<>(body, HttpStatus.BAD_REQUEST);
+    }
+
+    /**
+     * Handles {@link ResourceNotFoundException} when a resource is not found.
+     * <p>Returns a 404 Not Found response with the exception message.
+     *
+     * @param ex the thrown exception
+     * @return a {@link ResponseEntity} with status 400 and a structured error body
+     */
+    @ExceptionHandler(ResourceNotFoundException.class)
+    public ResponseEntity<Object> handleResourceNotFoundException(ResourceNotFoundException ex) {
+        log.error("Resource not found exception occurred", ex);
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("status", HttpStatus.NOT_FOUND.value());
+        body.put("error", "Resource Not Found");
+        body.put("message", ex.getMessage());
+        return new ResponseEntity<>(body, HttpStatus.NOT_FOUND);
+    }
+
     // TODO: Add specific exception handlers here as the application grows:
-    // - handleResourceNotFoundException(ResourceNotFoundException ex)
-    // - handleValidationException(MethodArgumentNotValidException ex)
     // - handleAuthenticationException(AuthenticationException ex)
     // - handleAccessDeniedException(AccessDeniedException ex)
     // These should return appropriate HTTP status codes (404, 400, 401, 403)
