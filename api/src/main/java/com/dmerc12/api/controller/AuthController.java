@@ -4,9 +4,13 @@ import com.dmerc12.api.dto.PasswordChangeRequest;
 import com.dmerc12.api.dto.RegisterRequest;
 import com.dmerc12.api.dto.ResponseDTO;
 import com.dmerc12.api.dto.UserDTO;
+import com.dmerc12.api.exception.InvalidTokenException;
 import com.dmerc12.api.exception.ResourceNotFoundException;
 import com.dmerc12.api.security.SecurityService;
+import com.dmerc12.api.service.AuthService;
 import com.dmerc12.api.service.UserService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -17,6 +21,8 @@ import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+
+import java.util.Arrays;
 
 /**
  * REST controller for authentication and user account management endpoints.
@@ -45,6 +51,7 @@ import org.springframework.web.bind.annotation.*;
 @RequestMapping("/api/auth")
 public class AuthController {
 
+    private final AuthService authService;
     private final UserService userService;
     private final SecurityService securityService;
 
@@ -101,12 +108,59 @@ public class AuthController {
      * @return {@code 200 OK} with a success response containing the new password
      * @throws ResourceNotFoundException if the user does not exist
      */
-    @GetMapping("/reset-password/{userId}")
+    @PostMapping("/reset-password/{userId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<ResponseDTO<String>> resetPassword(
             @PathVariable Long userId) {
         String password = userService.resetPassword(userId);
         log.info("Reset password for user ID: {}", userId);
         return ResponseEntity.ok(ResponseDTO.success("Password reset successfully", password));
+    }
+
+    /**
+     * Refreshes an expired access token using a valid refresh token.
+     * <p>The refresh token is expected in the {@code refresh_token} cookie or in the
+     * {@code Authorization} header as a Bearer token.
+     *
+     * @param request the HTTP request
+     * @return a new access token wrapped in a {@link ResponseDTO}
+     * @throws InvalidTokenException if the refresh token is missing, invalid, or expired
+     */
+    @PostMapping("/refresh")
+    public ResponseEntity<ResponseDTO<String>> refreshToken(HttpServletRequest request) {
+        String refreshToken = extractRefreshToken(request);
+        log.debug("Refresh token extracted: {}", refreshToken != null ? "present" : "missing");
+        try {
+            String newAccessToken = authService.refreshAccessToken(refreshToken);
+            log.info("Access token refreshed successfully");
+            return ResponseEntity.ok(ResponseDTO.success("Token refreshed", newAccessToken));
+        } catch (InvalidTokenException e) {
+            log.warn("Refresh token invalid: {}", e.getMessage());
+            throw e;
+        }
+    }
+
+    private String extractRefreshToken(HttpServletRequest request) {
+        // 1. Try from Authorization header
+        String authHeader = request.getHeader("Authorization");
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
+            log.debug("Extracted refresh token from Authorization header");
+            return token;
+        }
+        // 2. Try from Cookie
+        if (request.getCookies() != null) {
+            return Arrays.stream(request.getCookies())
+                    .filter(c -> "refresh_token".equals(c.getName()))
+                    .map(Cookie::getValue)
+                    .findFirst()
+                    .map(token -> {
+                        log.debug("Extracted refresh token from cookie");
+                        return token;
+                    })
+                    .orElse(null);
+        }
+        log.debug("No refresh token found");
+        return null;
     }
 }

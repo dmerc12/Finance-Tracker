@@ -5,15 +5,22 @@ import com.dmerc12.api.dto.PasswordChangeRequest;
 import com.dmerc12.api.dto.RegisterRequest;
 import com.dmerc12.api.entity.User;
 import com.dmerc12.api.repository.UserRepository;
+import com.dmerc12.api.security.CustomUserDetailsService;
+import com.dmerc12.api.security.JwtService;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.hamcrest.Matchers.anyOf;
@@ -31,7 +38,8 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * <ul>
  *     <li>User registration - success and validation failures</li>
  *     <li>Password change - success, ownership check, and validation errors</li>
- *     <li>Admin password  reset - success and authorization</li>
+ *     <li>Admin password reset - success and authorization</li>
+ *     <li>Token refresh - success via cookie/header, missing/invalid refresh token, other token (access, non-bearer)</li>
  * </ul>
  *
  * @see AuthController
@@ -39,6 +47,10 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * @see PasswordChangeRequest
  */
 @DisplayName("Authentication Integration Tests")
+@TestPropertySource(properties = {
+        "jwt.secret=c2VjcmV0S2V5Rm9ySlNXVGVzdGluZ1NlY3JldEtleUZvckpTV1Rlc3Rpbmc=",
+        "jwt.expiration=86400000"
+})
 public class AuthTests  extends BaseIntegrationTest {
 
     @Autowired
@@ -49,6 +61,12 @@ public class AuthTests  extends BaseIntegrationTest {
 
     @Autowired
     private PasswordEncoder passwordEncoder;
+
+    @Autowired
+    private JwtService jwtService;
+
+    @Autowired
+    private CustomUserDetailsService userDetailsService;
 
     private User user;
 
@@ -71,6 +89,20 @@ public class AuthTests  extends BaseIntegrationTest {
                 .passwordHash(passwordEncoder.encode("Pass123!"))
                 .build();
         userRepository.save(other);
+    }
+
+    // Helper to generate a refresh token for the test user
+    private String generateRefreshToken(User user) {
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
+        Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+        return jwtService.generateRefreshToken(auth);
+    }
+
+    // Helper to generate an access token for the test user
+    private String generateAccessToken(User user) {
+        UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
+        Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+        return jwtService.generateAccessToken(auth);
     }
 
     @Nested
@@ -905,14 +937,14 @@ public class AuthTests  extends BaseIntegrationTest {
     }
 
     @Nested
-    @DisplayName("GET /api/auth/reset-password/{userId}")
+    @DisplayName("POST /api/auth/reset-password/{userId}")
     class ResetPasswordTests {
 
         @Test
         @WithMockUser(roles = "ADMIN")
         @DisplayName("Returns 200 OK with generated password when admin")
         public void adminSuccess() throws Exception {
-            mockMvc.perform(get(BASE_URL + "/reset-password/{userId}", user.getId()))
+            mockMvc.perform(post(BASE_URL + "/reset-password/{userId}", user.getId()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.message").value("Password reset successfully"))
                     .andExpect(jsonPath("$.data").isString())
@@ -925,7 +957,7 @@ public class AuthTests  extends BaseIntegrationTest {
         @DisplayName("Returns 404 Not Found")
         public void notFound() throws Exception {
             Long userId = 9999L;
-            mockMvc.perform(get(BASE_URL + "/reset-password/{userId}", userId)
+            mockMvc.perform(post(BASE_URL + "/reset-password/{userId}", userId)
                             .with(csrf()))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.message").value("User not found with ID: " + userId));
@@ -935,8 +967,86 @@ public class AuthTests  extends BaseIntegrationTest {
         @WithMockUser(roles = "USER")
         @DisplayName("Returns 403 Forbidden when user is not admin")
         public void notAdminForbidden() throws Exception {
-            mockMvc.perform(get(BASE_URL + "/reset-password/{userId}", user.getId()))
+            mockMvc.perform(post(BASE_URL + "/reset-password/{userId}", user.getId()))
                     .andExpect(status().isForbidden());
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/auth/refresh")
+    class RefreshTokenTests {
+
+        @Test
+        @DisplayName("Returns 200 OK with new access token when refresh token is valid (via header)")
+        public void successFromHeader() throws Exception {
+            String refreshToken = generateRefreshToken(user);
+            mockMvc.perform(post(BASE_URL + "/refresh")
+                            .header("Authorization", "Bearer " + refreshToken)
+                            .with(csrf()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").value("Token refreshed"))
+                    .andExpect(jsonPath("$.data").isString())
+                    .andExpect(jsonPath("$.data").isNotEmpty());
+        }
+
+        @Test
+        @DisplayName("Returns 200 OK with new access token when refresh token is valid (via cookie)")
+        public void successFromCookie() throws Exception {
+            String refreshToken = generateRefreshToken(user);
+            Cookie cookie = new Cookie("refresh_token", refreshToken);
+            cookie.setPath("/");
+            mockMvc.perform(post(BASE_URL + "/refresh")
+                            .cookie(cookie)
+                            .with(csrf()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").value("Token refreshed"))
+                    .andExpect(jsonPath("$.data").isString())
+                    .andExpect(jsonPath("$.data").isNotEmpty());
+        }
+
+        @Test
+        @DisplayName("Returns 401 Unauthorized when refresh token is missing")
+        public void missingToken() throws Exception {
+            mockMvc.perform(post(BASE_URL + "/refresh")
+                            .with(csrf()))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.message").value("Invalid or expired refresh token"))
+                    .andExpect(jsonPath("$.error").value("Invalid Token"));
+        }
+
+        @Test
+        @DisplayName("Returns 401 Unauthorized when refresh token is invalid")
+        public void invalidToken() throws Exception {
+            String invalidToken = "invalid.token";
+            mockMvc.perform(post(BASE_URL + "/refresh")
+                            .header("Authorization", "Bearer " + invalidToken)
+                            .with(csrf()))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.message").value("Invalid or expired refresh token"))
+                    .andExpect(jsonPath("$.error").value("Invalid Token"));
+        }
+
+        @Test
+        @DisplayName("Returns 401 Unauthorized when token is not a refresh token (access token used)")
+        public void accessTokenNotAccepted() throws Exception {
+            String accessToken = generateAccessToken(user);
+            mockMvc.perform(post(BASE_URL + "/refresh")
+                            .header("Authorization", "Bearer " + accessToken)
+                            .with(csrf()))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.message").value("Invalid token type"))
+                    .andExpect(jsonPath("$.error").value("Invalid Token"));
+        }
+
+        @Test
+        @DisplayName("Returns 401 Unauthorized when Authorization header is not Bearer")
+        public void authHeaderNotBearer() throws Exception {
+            mockMvc.perform(post(BASE_URL + "/refresh")
+                            .header("Authorization", "Basic some-credentials")
+                            .with(csrf()))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.message").value("Invalid or expired refresh token"))
+                    .andExpect(jsonPath("$.error").value("Invalid Token"));
         }
     }
 }

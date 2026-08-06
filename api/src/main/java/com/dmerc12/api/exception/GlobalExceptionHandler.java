@@ -154,6 +154,17 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
     }
 
+    @ExceptionHandler(InvalidTokenException.class)
+    public ResponseEntity<ResponseDTO<Object>> handleInvalidTokenException(InvalidTokenException ex) {
+        log.error("Invalid token: {}", ex.getMessage());
+        ResponseDTO<Object> response = ResponseDTO.error(
+                ex.getMessage(),
+                HttpStatus.UNAUTHORIZED.value(),
+                "Invalid Token"
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
+
     // TODO: Add specific exception handlers here as the application grows:
     // - handleAuthenticationException(AuthenticationException ex)
     // These should return appropriate HTTP status codes (404, 400, 401, 403)
