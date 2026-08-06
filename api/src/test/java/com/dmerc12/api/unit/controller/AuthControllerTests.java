@@ -5,8 +5,12 @@ import com.dmerc12.api.dto.PasswordChangeRequest;
 import com.dmerc12.api.dto.RegisterRequest;
 import com.dmerc12.api.dto.ResponseDTO;
 import com.dmerc12.api.dto.UserDTO;
+import com.dmerc12.api.exception.InvalidTokenException;
 import com.dmerc12.api.security.SecurityService;
+import com.dmerc12.api.service.AuthService;
 import com.dmerc12.api.service.UserService;
+import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -34,6 +38,9 @@ import static org.mockito.Mockito.*;
 public class AuthControllerTests {
 
     @Mock
+    private AuthService authService;
+
+    @Mock
     private UserService userService;
 
     @Mock
@@ -41,6 +48,9 @@ public class AuthControllerTests {
 
     @Mock
     private Authentication authentication;
+
+    @Mock
+    private HttpServletRequest request;
 
     @InjectMocks
     private AuthController authController;
@@ -131,6 +141,80 @@ public class AuthControllerTests {
             assertThat(response.getBody().getMessage()).isEqualTo("Password reset successfully");
             assertThat(response.getBody().getData()).isEqualTo(generatedPassword);
             verify(userService).resetPassword(userId);
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/auth/refresh")
+    class RefreshTokenTests {
+
+        @Test
+        @DisplayName("Returns 200 OK with new access token when refresh token is valid")
+        public void success() {
+            String refreshToken = "valid.refresh.token";
+            String newAccessToken = "new.access.token";
+            when(request.getHeader("Authorization")).thenReturn("Bearer " + refreshToken);
+            when(authService.refreshAccessToken(refreshToken)).thenReturn(newAccessToken);
+            ResponseEntity<ResponseDTO<String>> response = authController.refreshToken(request);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).isNotNull();
+            assertThat(response.getBody().getMessage()).isEqualTo("Token refreshed");
+            assertThat(response.getBody().getData()).isEqualTo(newAccessToken);
+            verify(authService).refreshAccessToken(refreshToken);
+        }
+
+        @Test
+        @DisplayName("Returns 401 Unauthorized when refresh token is missing")
+        public void missingToken() {
+            when(request.getHeader("Authorization")).thenReturn(null);
+            when(request.getCookies()).thenReturn(null);
+            when(authService.refreshAccessToken(null))
+                    .thenThrow(new InvalidTokenException("Invalid or expired refresh token"));
+            assertThatThrownBy(() -> authController.refreshToken(request))
+                    .isInstanceOf(InvalidTokenException.class)
+                    .hasMessage("Invalid or expired refresh token");
+            verify(authService).refreshAccessToken(null);
+        }
+
+        @Test
+        @DisplayName("Returns 401 Unauthorized when refresh token is invalid")
+        public void invalidToken() {
+            String invalidToken = "invalid.token";
+            when(request.getHeader("Authorization")).thenReturn("Bearer " + invalidToken);
+            when(authService.refreshAccessToken(invalidToken))
+                    .thenThrow(new InvalidTokenException("Invalid or expired refresh token"));
+            assertThatThrownBy(() -> authController.refreshToken(request))
+                    .isInstanceOf(InvalidTokenException.class)
+                    .hasMessage("Invalid or expired refresh token");
+            verify(authService).refreshAccessToken(invalidToken);
+        }
+
+        @Test
+        @DisplayName("Returns 401 Unauthorized when authorization header is not bearer")
+        public void authHeaderNotBearer() {
+            when(request.getHeader("Authorization")).thenReturn("Other ");
+            when(authService.refreshAccessToken(null))
+                    .thenThrow(new InvalidTokenException("Invalid or expired refresh token"));
+            assertThatThrownBy(() -> authController.refreshToken(request))
+                    .isInstanceOf(InvalidTokenException.class)
+                    .hasMessage("Invalid or expired refresh token");
+            verify(authService).refreshAccessToken(null);
+        }
+
+        @Test
+        @DisplayName("Extracts refresh token from cookie when Authorization header is absent")
+        public void successFromCookie() {
+            String refreshToken = "cookie.refresh.token";
+            String newAccessToken = "new.access.token";
+            when(request.getHeader("Authorization")).thenReturn(null);
+            Cookie cookie = new Cookie("refresh_token", refreshToken);
+            when(request.getCookies()).thenReturn(new Cookie[]{cookie});
+            when(authService.refreshAccessToken(refreshToken)).thenReturn(newAccessToken);
+            ResponseEntity<ResponseDTO<String>> response = authController.refreshToken(request);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).isNotNull();
+            assertThat(response.getBody().getData()).isEqualTo(newAccessToken);
+            verify(authService).refreshAccessToken(refreshToken);
         }
     }
 }
