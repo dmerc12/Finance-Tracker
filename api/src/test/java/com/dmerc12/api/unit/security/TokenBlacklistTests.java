@@ -61,4 +61,20 @@ public class TokenBlacklistTests {
         assertThat(blacklist.isBlacklisted(expiredToken)).isFalse();
         assertThat(blacklist.isBlacklisted(validToken)).isTrue();
     }
+
+    @Test
+    @DisplayName("cleanupExpired does nothing when no expired tokens")
+    public void cleanupExpiredNoExpiredTokens() {
+        String validToken = "valid";
+        Date future = new Date(System.currentTimeMillis() + 600000);
+        blacklist.blacklistToken(validToken, future);
+        blacklist.cleanupExpired();
+        assertThat(blacklist.isBlacklisted(validToken)).isTrue();
+    }
+
+    @Test
+    @DisplayName("cleanupExpired handles empty blacklist")
+    public void cleanupExpiredEmpty() {
+        blacklist.cleanupExpired();
+    }
 }

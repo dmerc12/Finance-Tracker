@@ -165,4 +165,32 @@ public class JwtServiceTests {
         String token = jwtService.generateAccessToken(authentication);
         assertThat(jwtService.extractUsername(token)).isEqualTo("test");
     }
+
+    @Test
+    @DisplayName("extractTokenType returns null when token is invalid (JwtException)")
+    public void extractTokenTypeInvalidToken() {
+        String invalidToken = "invalid.token";
+        String result = jwtService.extractTokenType(invalidToken);
+        assertThat(result).isNull();
+    }
+
+    @Test
+    @DisplayName("isTokenExpired logs debug when token is expired")
+    public void isTokenExpiredDebugLog() {
+        String token = Jwts.builder()
+                .subject("test")
+                .issuedAt(new Date(System.currentTimeMillis() - 10000))
+                .expiration(new Date(System.currentTimeMillis() - 5000))
+                .signWith(Keys.hmacShaKeyFor(java.util.Base64.getDecoder().decode(testSecret)))
+                .compact();
+        assertThat(jwtService.isTokenExpired(token)).isTrue();
+    }
+
+    @Test
+    @DisplayName("extractUsername returns null for invalid token (JwtException)")
+    public void extractUsernameInvalidToken() {
+        String invalidToken = "invalid.token";
+        String result = jwtService.extractUsername(invalidToken);
+        assertThat(result).isNull();
+    }
 }
