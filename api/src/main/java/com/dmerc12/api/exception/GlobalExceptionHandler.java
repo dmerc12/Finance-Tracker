@@ -6,6 +6,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
@@ -165,7 +166,20 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
 
-    // TODO: Add specific exception handlers here as the application grows:
-    // - handleAuthenticationException(AuthenticationException ex)
-    // These should return appropriate HTTP status codes (404, 400, 401, 403)
+    /**
+     * Handles authentication failures (invalid credentials).
+     *
+     * @param ex the thrown exception
+     * @return 401 Unauthorized with a generic message
+     */
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ResponseDTO<Object>> handleBadCredentialsException(BadCredentialsException ex) {
+        log.warn("Authentication failed: {}", ex.getMessage());
+        ResponseDTO<Object> response = ResponseDTO.error(
+                "Invalid email or password",
+                HttpStatus.UNAUTHORIZED.value(),
+                "Unauthorized"
+        );
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
+    }
 }

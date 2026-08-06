@@ -1,8 +1,10 @@
 package com.dmerc12.api.integration;
 
 import com.dmerc12.api.controller.AuthController;
+import com.dmerc12.api.dto.LoginRequest;
 import com.dmerc12.api.dto.PasswordChangeRequest;
 import com.dmerc12.api.dto.RegisterRequest;
+import com.dmerc12.api.entity.Role;
 import com.dmerc12.api.entity.User;
 import com.dmerc12.api.repository.UserRepository;
 import com.dmerc12.api.security.CustomUserDetailsService;
@@ -23,6 +25,8 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.Set;
+
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.matchesPattern;
@@ -40,9 +44,11 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *     <li>Password change - success, ownership check, and validation errors</li>
  *     <li>Admin password reset - success and authorization</li>
  *     <li>Token refresh - success via cookie/header, missing/invalid refresh token, other token (access, non-bearer)</li>
+ *     <li>Login - success, incorrect password, email nonexistent, blank email/password</li>
  * </ul>
  *
  * @see AuthController
+ * @see LoginRequest
  * @see RegisterRequest
  * @see PasswordChangeRequest
  */
@@ -79,6 +85,8 @@ public class AuthTests  extends BaseIntegrationTest {
                 .email("owner@example.com")
                 .firstName("Bill")
                 .lastName("Johnson")
+                .enabled(true)
+                .roles(Set.of(Role.ROLE_USER))
                 .passwordHash(passwordEncoder.encode("OldPass123!"))
                 .build();
         user = userRepository.save(user);
@@ -86,6 +94,8 @@ public class AuthTests  extends BaseIntegrationTest {
                 .email("other@example.com")
                 .firstName("Jill")
                 .lastName("Smith")
+                .enabled(true)
+                .roles(Set.of(Role.ROLE_USER))
                 .passwordHash(passwordEncoder.encode("Pass123!"))
                 .build();
         userRepository.save(other);
@@ -1047,6 +1057,98 @@ public class AuthTests  extends BaseIntegrationTest {
                     .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.message").value("Invalid or expired refresh token"))
                     .andExpect(jsonPath("$.error").value("Invalid Token"));
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/auth/login")
+    class LoginTests {
+
+        @Test
+        @DisplayName("Returns 200 OK with token and user info on valid credentials")
+        public void loginSuccess() throws Exception {
+            LoginRequest request = new LoginRequest("owner@example.com", "OldPass123!");
+            ObjectMapper mapper = new ObjectMapper();
+            mockMvc.perform(post(BASE_URL + "/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(mapper.writeValueAsString(request)))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").value("Login successful"))
+                    .andExpect(jsonPath("$.data.accessToken").isString())
+                    .andExpect(jsonPath("$.data.refreshToken").isString())
+                    .andExpect(jsonPath("$.data.email").value("owner@example.com"))
+                    .andExpect(jsonPath("$.data.firstName").value("Bill"))
+                    .andExpect(jsonPath("$.data.lastName").value("Johnson"))
+                    .andExpect(jsonPath("$.data.roles").isArray())
+                    .andExpect(jsonPath("$.data.roles[0]").value("ROLE_USER"));
+        }
+
+        @Test
+        @DisplayName("Returns 401 Unauthorized when password is incorrect")
+        public void loginWrongPassword() throws Exception {
+            LoginRequest request = new LoginRequest("owner@example.com", "WrongPass!");
+            ObjectMapper mapper = new ObjectMapper();
+            mockMvc.perform(post(BASE_URL + "/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(mapper.writeValueAsString(request)))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.message").value("Invalid email or password"))
+                    .andExpect(jsonPath("$.error").value("Unauthorized"));
+        }
+
+        @Test
+        @DisplayName("Returns 401 Unauthorized when email does not exist")
+        public void loginEmailNotFound() throws Exception {
+            LoginRequest request = new LoginRequest("nonexistent@example.com", "Pass123!");
+            ObjectMapper mapper = new ObjectMapper();
+            mockMvc.perform(post(BASE_URL + "/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(mapper.writeValueAsString(request)))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.message").value("Invalid email or password"))
+                    .andExpect(jsonPath("$.error").value("Unauthorized"));
+        }
+
+        @Test
+        @DisplayName("Returns 400 Bad Request when email is invalid")
+        public void loginEmailInvalid() throws Exception {
+            LoginRequest request = new LoginRequest("invalid", "Pass123!");
+            ObjectMapper mapper = new ObjectMapper();
+            mockMvc.perform(post(BASE_URL + "/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(mapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.fieldErrors.email").value("Invalid email format"))
+                    .andExpect(jsonPath("$.message").value("Invalid request payload"))
+                    .andExpect(jsonPath("$.error").value("Validation Failed"));
+        }
+
+        @Test
+        @DisplayName("Returns 400 Bad Request when email is blank")
+        public void loginEmailBlank() throws Exception {
+            LoginRequest request = new LoginRequest("", "Pass123!");
+            ObjectMapper mapper = new ObjectMapper();
+            mockMvc.perform(post(BASE_URL + "/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(mapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.fieldErrors.email").value("Email is required"))
+                    .andExpect(jsonPath("$.message").value("Invalid request payload"))
+                    .andExpect(jsonPath("$.error").value("Validation Failed"));
+        }
+
+        @Test
+        @DisplayName("Returns 400 Bad Request when password is blank")
+        public void loginPasswordBlank() throws Exception {
+            LoginRequest request = new LoginRequest("owner@example.com", "");
+            ObjectMapper mapper = new ObjectMapper();
+            mockMvc.perform(post(BASE_URL + "/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(mapper.writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.fieldErrors.password").value("Password is required"))
+                    .andExpect(jsonPath("$.message").value("Invalid request payload"))
+                    .andExpect(jsonPath("$.error").value("Validation Failed"));
         }
     }
 }
