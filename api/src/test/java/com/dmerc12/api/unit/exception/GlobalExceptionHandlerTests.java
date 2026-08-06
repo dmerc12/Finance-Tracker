@@ -11,6 +11,7 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.validation.BindingResult;
 import org.springframework.validation.FieldError;
@@ -245,6 +246,27 @@ public class GlobalExceptionHandlerTests {
             assertEquals(401, body.getStatus());
             assertEquals("Invalid Token", body.getError());
             assertEquals(errorMessage, body.getMessage());
+            assertNull(body.getData());
+            assertNull(body.getFieldErrors());
+        }
+    }
+
+    @Nested
+    @DisplayName("handleBadCredentialsException() Tests")
+    class HandleBadCredentialsExceptionTests {
+
+        @Test
+        @DisplayName("Returns 401 Unauthorized with error details")
+        public void handlesBadCredentialsException() {
+            BadCredentialsException ex = new BadCredentialsException("Invalid credentials");
+            ResponseEntity<ResponseDTO<Object>> response = handler.handleBadCredentialsException(ex);
+            assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+            ResponseDTO<Object> body = response.getBody();
+            assertNotNull(body);
+            assertNotNull(body.getTimestamp());
+            assertEquals(401, body.getStatus());
+            assertEquals("Unauthorized", body.getError());
+            assertEquals("Invalid email or password", body.getMessage());
             assertNull(body.getData());
             assertNull(body.getFieldErrors());
         }

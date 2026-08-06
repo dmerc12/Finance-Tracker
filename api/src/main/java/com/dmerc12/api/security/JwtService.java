@@ -146,9 +146,7 @@ public class JwtService {
     public boolean isTokenExpired(String token) {
         try {
             boolean expired = extractExpiration(token).before(new Date());
-            if (expired) {
-                log.debug("Token is expired");
-            }
+            log.debug("Token expired: {}", expired);
             return expired;
         } catch (JwtException | IllegalArgumentException e) {
             log.warn("Token expired check failed: {}", e.getMessage());

@@ -53,6 +53,7 @@ public class User extends BaseEntity {
      * Indicates whether the account is enabled (e.g., for email verification).
      * Defaults to {@code true} for new users.
      */
+    @Builder.Default
     @Column(name = "enabled")
     private boolean enabled = true;
 

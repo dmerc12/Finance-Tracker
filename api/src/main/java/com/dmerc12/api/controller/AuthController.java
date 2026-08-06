@@ -1,9 +1,6 @@
 package com.dmerc12.api.controller;
 
-import com.dmerc12.api.dto.PasswordChangeRequest;
-import com.dmerc12.api.dto.RegisterRequest;
-import com.dmerc12.api.dto.ResponseDTO;
-import com.dmerc12.api.dto.UserDTO;
+import com.dmerc12.api.dto.*;
 import com.dmerc12.api.exception.InvalidTokenException;
 import com.dmerc12.api.exception.ResourceNotFoundException;
 import com.dmerc12.api.security.SecurityService;
@@ -11,6 +8,7 @@ import com.dmerc12.api.service.AuthService;
 import com.dmerc12.api.service.UserService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -162,5 +160,21 @@ public class AuthController {
         }
         log.debug("No refresh token found");
         return null;
+    }
+
+    /**
+     * Authenticates a user and returns a JWT access token.
+     *
+     * @param request the login request (email + password)
+     * @param response response to attach tokens to secure HTTP-only cookies
+     * @return a {@link LoginResponse} containing the tokens and user details
+     */
+    @PostMapping("/login")
+    public ResponseEntity<ResponseDTO<LoginResponse>> login(@Valid @RequestBody LoginRequest request,
+                                                            HttpServletResponse response) {
+        log.debug("Login request received for email: {}", request.getEmail());
+        LoginResponse loginData = authService.login(request, response);
+        log.info("User logged in: {}", loginData.getEmail());
+        return ResponseEntity.ok(ResponseDTO.success("Login successful", loginData));
     }
 }

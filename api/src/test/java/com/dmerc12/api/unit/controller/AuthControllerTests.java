@@ -1,16 +1,14 @@
 package com.dmerc12.api.unit.controller;
 
 import com.dmerc12.api.controller.AuthController;
-import com.dmerc12.api.dto.PasswordChangeRequest;
-import com.dmerc12.api.dto.RegisterRequest;
-import com.dmerc12.api.dto.ResponseDTO;
-import com.dmerc12.api.dto.UserDTO;
+import com.dmerc12.api.dto.*;
 import com.dmerc12.api.exception.InvalidTokenException;
 import com.dmerc12.api.security.SecurityService;
 import com.dmerc12.api.service.AuthService;
 import com.dmerc12.api.service.UserService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -21,7 +19,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.core.Authentication;
+
+import java.util.Set;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
@@ -215,6 +216,45 @@ public class AuthControllerTests {
             assertThat(response.getBody()).isNotNull();
             assertThat(response.getBody().getData()).isEqualTo(newAccessToken);
             verify(authService).refreshAccessToken(refreshToken);
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/auth/login")
+    class LoginTests {
+
+        @Test
+        @DisplayName("Returns 200 OK with token and user info on success")
+        public void success() {
+            LoginRequest request = new LoginRequest("test@example.com", "Password123!");
+            LoginResponse response = LoginResponse.builder()
+                    .accessToken("access.token")
+                    .refreshToken("refresh.token")
+                    .email("test@example.com")
+                    .firstName("John")
+                    .lastName("Doe")
+                    .roles(Set.of("ROLE_USER"))
+                    .build();
+            HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+            when(authService.login(request, mockResponse)).thenReturn(response);
+            ResponseEntity<ResponseDTO<LoginResponse>> result = authController.login(request, mockResponse);
+            assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(result.getBody()).isNotNull();
+            assertThat(result.getBody().getMessage()).isEqualTo("Login successful");
+            assertThat(result.getBody().getData()).isEqualTo(response);
+            verify(authService).login(request, mockResponse);
+        }
+
+        @Test
+        @DisplayName("Propagates BadCredentialsException")
+        public void badCredentials() {
+            LoginRequest request = new LoginRequest("test@example.com", "wrong");
+            HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+            when(authService.login(request, mockResponse)).thenThrow(new BadCredentialsException("Invalid credentials"));
+            assertThatThrownBy(() -> authController.login(request, mockResponse))
+                    .isInstanceOf(BadCredentialsException.class)
+                    .hasMessageContaining("Invalid credentials");
+            verify(authService).login(request, mockResponse);
         }
     }
 }

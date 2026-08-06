@@ -95,7 +95,7 @@ public class SecurityConfig {
                         // Secure other actuator endpoints
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
                         // Public registration and refresh endpoints
-                        .requestMatchers("/api/auth/register", "/api/auth/refresh").permitAll()
+                        .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/refresh").permitAll()
                         // Authenticated by default
                         .anyRequest().authenticated()
                 )
