@@ -1,10 +1,7 @@
 package com.dmerc12.api.unit.exception;
 
 import com.dmerc12.api.dto.ResponseDTO;
-import com.dmerc12.api.exception.DuplicateResourceException;
-import com.dmerc12.api.exception.GlobalExceptionHandler;
-import com.dmerc12.api.exception.PasswordMismatchException;
-import com.dmerc12.api.exception.ResourceNotFoundException;
+import com.dmerc12.api.exception.*;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
@@ -226,6 +223,27 @@ public class GlobalExceptionHandlerTests {
             assertNotNull(body.getTimestamp());
             assertEquals(403, body.getStatus());
             assertEquals("Forbidden", body.getError());
+            assertEquals(errorMessage, body.getMessage());
+            assertNull(body.getData());
+            assertNull(body.getFieldErrors());
+        }
+    }
+
+    @Nested
+    @DisplayName("handleInvalidTokenException() Tests")
+    class HandleInvalidTokenExceptionTests {
+        @Test
+        @DisplayName("Returns 401 Forbidden with error details")
+        public void handlesInvalidTokenExceptionThrown() {
+            String errorMessage = "Unauthorized";
+            InvalidTokenException ex = new InvalidTokenException(errorMessage);
+            ResponseEntity<ResponseDTO<Object>> response = handler.handleInvalidTokenException(ex);
+            assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+            ResponseDTO<Object> body = response.getBody();
+            assertNotNull(body);
+            assertNotNull(body.getTimestamp());
+            assertEquals(401, body.getStatus());
+            assertEquals("Invalid Token", body.getError());
             assertEquals(errorMessage, body.getMessage());
             assertNull(body.getData());
             assertNull(body.getFieldErrors());
