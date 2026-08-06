@@ -1,14 +1,21 @@
 package com.dmerc12.api.config;
 
+import com.dmerc12.api.security.JwtAuthenticationEntryPoint;
+import com.dmerc12.api.security.JwtAuthenticationFilter;
+import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
+import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -20,23 +27,18 @@ import java.util.List;
  * <p>This class configures the application's security rules, including:
  * <ul>
  *     <li>Endpoint authorization and access control</li>
- *     <li>CSRF protection (disabled for now, to be enabled with JWT)</li>
- *     <li>Authentication requirements for actuator endpoints</li>
+ *     <li>JWT authentication filter and entry point</li>
+ *     <li>Stateless session management</li>
+ *     <li>CORS settings</li>
  * </ul>
- * <p><b>Security Principles:</b>
- * <ul>
- *     <li>Actuator health endpoint is public for container health checks</li>
- *     <li>All other actuator endpoints require ADMIN role</li>
- *     <li>All other endpoints are currently public (to be secured later)</li>
- *     <li>CSRF is disabled for now but will be re-enabled with JWT token validation</li>
- * </ul>
- *
- * @see EnableWebSecurity
- * @see SecurityFilterChain
  */
 @Configuration
 @EnableWebSecurity
+@RequiredArgsConstructor
 public class SecurityConfig {
+
+    private final JwtAuthenticationFilter jwtAuthFilter;
+    private final JwtAuthenticationEntryPoint authEntryPoint;
 
     /**
      * List of allowed origins for Cross-Origin Resource Sharing (CORS).
@@ -76,23 +78,28 @@ public class SecurityConfig {
      *
      * @param http the {@link HttpSecurity} object to configure
      * @return the configured {@link SecurityFilterChain}
-     * @throws Exception if an error occurs during configuration
      */
     @Bean
-    public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain filterChain(HttpSecurity http) {
         http
+                // Configure CORS
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                // Temporarily disabled for JWT
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(session ->
+                        session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(authEntryPoint))
                 .authorizeHttpRequests(auth -> auth
                         // Health checks for Docker
                         .requestMatchers("/actuator/health").permitAll()
                         // Secure other actuator endpoints
                         .requestMatchers("/actuator/**").hasRole("ADMIN")
-                        // Public for now (to be secured)
-                        .anyRequest().permitAll()
+                        // Public registration and refresh endpoints
+                        .requestMatchers("/api/auth/register", "/api/auth/refresh").permitAll()
+                        // Authenticated by default
+                        .anyRequest().authenticated()
                 )
-                // Configure CORS
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                // Temporarily disabled for JWT
-                .csrf(AbstractHttpConfigurer::disable);
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
         return http.build();
     }
 
@@ -140,10 +147,14 @@ public class SecurityConfig {
         return source;
     }
 
-    // TODO: Add the following beans in the next phase:
-    // - AuthenticationManager - for programmatic authentication (e.g., login endpoint)
-    // - JwtAuthenticationFilter - to validate JWT tokens on each request
-    // - JwtAuthenticationEntryPoint - to handle authentication errors (401)
-    // - JwtService (or JwtUtils) - to generate and validate tokens
-    // These will be added when implementing full authentication functionality.
+    /**
+     * Provides the authentication manager bean.
+     *
+     * @param config the authentication configuration
+     * @return the {@link AuthenticationManager}
+     */
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) {
+        return config.getAuthenticationManager();
+    }
 }
