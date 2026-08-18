@@ -1,52 +1,84 @@
+import { type AppDispatch, type RootState, register } from '../../store';
+import { validateRegisterRequest } from '../../validations';
+import { useDispatch, useSelector } from 'react-redux';
+import { type RegisterRequest } from '../../types';
+import { getPasswordStrength } from '../../utils';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import React, { useState } from 'react';
+import { useForm } from '../useForm';
+
+type RegisterErrors = Partial<Record<keyof RegisterRequest, string>> & {
+    general?: string;
+};
 
 export default function useRegister() {
-    const [email, setEmail] = useState('');
-    const [password, setPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [error, setError] = useState('');
-    const [success, setSuccess] = useState('');
+    const dispatch = useDispatch<AppDispatch>();
     const navigate = useNavigate();
+    const { isLoading } = useSelector((state: RootState) => state.auth);
+    // Form fields
+    const { values, errors, setFieldError, handleChange, validateForm } = useForm<RegisterRequest>({
+        initialValues: {
+            email: '',
+            firstName: '',
+            lastName: '',
+            password: '',
+            passwordConfirm: '',
+        },
+        validate: validateRegisterRequest,
+    });
+    const [generalError, setGeneralError] = useState<string>('');
+    const passwordStrength = getPasswordStrength(values.password);
 
-    const handleSubmit = (e: React.SubmitEvent) => {
+    const isFormValid = useMemo(() => {
+        const hasFieldError = Object.values(errors).some((msg) => msg && msg.length > 0);
+        const hasGeneralError = generalError.length > 0;
+        const allFilled = !!(
+            values.email &&
+            values.password &&
+            values.passwordConfirm &&
+            values.firstName &&
+            values.lastName
+        );
+        return !hasFieldError && !hasGeneralError && allFilled;
+    }, [errors, generalError, values]);
+
+    const handleSubmit = async (e: React.SubmitEvent) => {
         e.preventDefault();
-        setError('');
-        setSuccess('');
-        if (!email || !password || !confirmPassword) {
-            setError('Please fill in all fields');
+        // Run client-side validation
+        const isValid = validateForm();
+        if (!isValid || !isFormValid) {
             return;
         }
-        const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-        if (!emailRegex.test(email)) {
-            setError('Please enter a valid email address');
-            return;
+        // Clear any previous general error
+        setGeneralError('');
+        try {
+            await dispatch(register(values)).unwrap();
+            // registration successful, navigate to login
+            navigate('/login');
+        } catch (error: unknown) {
+            // error is the object we rejected with: { message, fieldErrors }
+            const rejected = error as { message: string; fieldErrors?: Record<string, string> };
+            if (rejected.fieldErrors) {
+                // Merge server-side field errors
+                Object.entries(rejected.fieldErrors).forEach(([field, msg]) => {
+                    setFieldError(field as keyof RegisterRequest, msg);
+                });
+            } else {
+                // If no field errors, show the top-level message
+                setGeneralError(rejected.message || 'Registration failed');
+            }
         }
-        if (password !== confirmPassword) {
-            setError('Passwords do not match');
-            return;
-        }
-        if (password.length < 6) {
-            setError('Password must be at least 6 characters long');
-            return;
-        }
-        // Replace with real API call
-        console.log('Registration attempt:', { email, password });
-        setSuccess('Account created successfully! Redirecting to dashboard...');
-        setTimeout(() => {
-            navigate('/');
-        }, 2000);
     };
 
+    const combinedErrors: RegisterErrors = { ...errors, general: generalError };
+
     return {
-        email,
-        setEmail,
-        password,
-        setPassword,
-        confirmPassword,
-        setConfirmPassword,
-        error,
-        success,
+        values,
+        errors: combinedErrors,
+        passwordStrength,
+        isLoading,
         handleSubmit,
+        handleChange,
+        isFormValid,
     };
 }
