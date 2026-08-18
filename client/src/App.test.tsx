@@ -6,7 +6,7 @@ describe('App', () => {
     it('renders without crashing', () => {
         render(<App />);
         // Look for the brand name in the header
-        const brandLink = screen.getByRole('link', { name: /Finance Tracker/i });
+        const brandLink = screen.getByRole('heading', { name: /Finance Tracker/i });
         expect(brandLink).toBeInTheDocument();
     });
 });
