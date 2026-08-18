@@ -1,6 +1,6 @@
 import * as AccordionPrimitive from '@radix-ui/react-accordion';
 import * as React from 'react';
-import { cn } from '../utils';
+import { cn } from '../../utils';
 
 function AccordionItem({
     className,
