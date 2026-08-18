@@ -1,5 +1,15 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { authService } from '../../services';
+import type { RegisterRequest } from '../../../types';
+import { authService } from '../../../services';
+import { getErrorData } from '../../../utils';
+
+/**
+ * Error state shape.
+ */
+interface ErrorState {
+    message: string | null;
+    fieldErrors: Map<string, string[]> | null;
+}
 
 /**
  * Authentication state shape.
@@ -7,13 +17,18 @@ import { authService } from '../../services';
 interface AuthState {
     isAuthenticated: boolean;
     isLoading: boolean;
-    error: string | null;
+    error: ErrorState;
 }
+
+const initialErrorState: ErrorState = {
+    message: null,
+    fieldErrors: null,
+};
 
 const initialState: AuthState = {
     isAuthenticated: false,
     isLoading: false,
-    error: null,
+    error: initialErrorState,
 };
 
 /**
@@ -51,15 +66,16 @@ export const logout = createAsyncThunk('auth/logout', async (_, { rejectWithValu
  */
 export const register = createAsyncThunk(
     'auth/register',
-    async (
-        data: { email: string; password: string; firstName?: string; lastName?: string },
-        { rejectWithValue }
-    ) => {
+    async (data: RegisterRequest, { rejectWithValue }) => {
         try {
             const response = await authService.register(data);
-            return response.data;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Registration failed');
+            return response.data.data;
+        } catch (error: unknown) {
+            const { message, fieldErrors } = getErrorData(error);
+            return rejectWithValue({
+                message: message || 'Registration failed',
+                fieldErrors,
+            });
         }
     }
 );
@@ -69,7 +85,7 @@ const authSlice = createSlice({
     initialState,
     reducers: {
         clearAuthError: (state) => {
-            state.error = null;
+            state.error = initialState.error;
         },
         resetAuthState: () => initialState,
     },
@@ -78,7 +94,7 @@ const authSlice = createSlice({
         builder
             .addCase(login.pending, (state) => {
                 state.isLoading = true;
-                state.error = null;
+                state.error = initialErrorState;
             })
             .addCase(login.fulfilled, (state) => {
                 state.isAuthenticated = true;
@@ -87,7 +103,7 @@ const authSlice = createSlice({
             .addCase(login.rejected, (state, action) => {
                 state.isAuthenticated = false;
                 state.isLoading = false;
-                state.error = action.payload as string;
+                state.error = action.payload as ErrorState;
             });
         // -- logout --
         builder
@@ -100,7 +116,7 @@ const authSlice = createSlice({
         builder
             .addCase(register.pending, (state) => {
                 state.isLoading = true;
-                state.error = null;
+                state.error = initialErrorState;
             })
             .addCase(register.fulfilled, (state) => {
                 state.isLoading = false;
@@ -108,7 +124,7 @@ const authSlice = createSlice({
             })
             .addCase(register.rejected, (state, action) => {
                 state.isLoading = false;
-                state.error = action.payload as string;
+                state.error = action.payload as ErrorState;
             });
     },
 });

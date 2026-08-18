@@ -1,4 +1,5 @@
-import api from './api';
+import { type RegisterRequest } from '../../types';
+import api from '../api';
 
 /**
  * Authentication API service with HTTP-only cookie support.
@@ -26,13 +27,7 @@ export const authService = {
      * @param data registration data
      * @returns Promise with the response
      */
-    register: (data: {
-        email: string;
-        password: string;
-        firstName?: string;
-        lastName?: string;
-    }) => {
-        // TODO: implement register
+    register: (data: RegisterRequest) => {
         console.log('Register called with:', data);
         return api.post('/auth/register', data);
     },
