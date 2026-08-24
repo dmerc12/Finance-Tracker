@@ -1,8 +1,8 @@
 import * as AlertDialogPrimitive from '@radix-ui/react-alert-dialog';
-import AlertDialogOverlay from './alert-dialog-overlay';
-import AlertDialogPortal from './alert-dialog-portal';
+import AlertDialogOverlay from '../alert-dialog-overlay/alert-dialog-overlay.tsx';
+import AlertDialogPortal from '../alert-dialog-portal/alert-dialog-portal.tsx';
 import * as React from 'react';
-import { cn } from '../utils';
+import { cn } from '../../utils';
 
 function AlertDialogContent({
     className,
