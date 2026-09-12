@@ -174,6 +174,7 @@ export {
     PaginationNext,
     PaginationEllipsis,
 } from './pagination';
+export { PasswordInput, PasswordStrengthIndicator } from './password';
 export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from './popover';
 export { Progress } from './progress';
 export { RadioGroup, RadioGroupItem } from './radio-group';

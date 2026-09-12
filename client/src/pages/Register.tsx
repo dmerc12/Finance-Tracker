@@ -1,25 +1,23 @@
-import { Card, CardContent, Input, Label, Button, Alert, AlertDescription } from '../components/ui';
-import { Eye, EyeOff } from 'lucide-react';
-import React, { useState } from 'react';
+import { Loader2 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { useRegister } from '../hooks';
 import { motion } from 'motion/react';
+import {
+    Card,
+    CardContent,
+    Input,
+    Label,
+    Button,
+    Alert,
+    AlertDescription,
+    PasswordInput,
+    PasswordStrengthIndicator,
+} from '../components/ui';
+import React from 'react';
 
 const Register: React.FC = () => {
-    const {
-        email,
-        setEmail,
-        password,
-        setPassword,
-        confirmPassword,
-        setConfirmPassword,
-        error,
-        success,
-        handleSubmit,
-    } = useRegister();
-
-    const [showPassword, setShowPassword] = useState(false);
-    const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+    const { values, errors, passwordStrength, isLoading, handleSubmit, handleChange, isFormValid } =
+        useRegister();
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
@@ -45,85 +43,99 @@ const Register: React.FC = () => {
                         >
                             Create your account
                         </motion.h5>
-                        <Alert className="mb-4 bg-blue-50 border-blue-200">
-                            <AlertDescription>
-                                <strong>Prototype Mode:</strong> Any valid email and password will
-                                work.
-                            </AlertDescription>
-                        </Alert>
-                        {error && (
+                        {errors.general && (
                             <Alert variant="destructive" className="mb-4">
-                                <AlertDescription>{error}</AlertDescription>
-                            </Alert>
-                        )}
-                        {success && (
-                            <Alert className="mb-4 bg-green-50 border-green-200 text-green-800">
-                                <AlertDescription>{success}</AlertDescription>
+                                <AlertDescription>{errors.general}</AlertDescription>
                             </Alert>
                         )}
                         <form onSubmit={handleSubmit}>
+                            {/* First Name */}
                             <div className="mb-4">
-                                <Label htmlFor="email">Email address</Label>
+                                <Label htmlFor="firstName">First Name</Label>
+                                <Input
+                                    type="text"
+                                    id="firstName"
+                                    name="firstName"
+                                    value={values.firstName}
+                                    onChange={handleChange}
+                                    className={`mt-1.5 ${errors.firstName ? 'border-red-500' : ''}`}
+                                    aria-describedby="firstName-error"
+                                />
+                                {errors.firstName && (
+                                    <p id="firstName-error" className="text-red-500 text-sm">
+                                        {errors.firstName}
+                                    </p>
+                                )}
+                            </div>
+                            {/* Last Name */}
+                            <div className="mb-4">
+                                <Label htmlFor="lastName">Last Name</Label>
+                                <Input
+                                    type="text"
+                                    id="lastName"
+                                    name="lastName"
+                                    value={values.lastName}
+                                    onChange={handleChange}
+                                    className={`mt-1.5 ${errors.lastName ? 'border-red-500' : ''}`}
+                                    aria-describedby="lastName-error"
+                                />
+                                {errors.lastName && (
+                                    <p id="lastName-error" className="text-red-500 text-sm">
+                                        {errors.lastName}
+                                    </p>
+                                )}
+                            </div>
+                            {/* Email */}
+                            <div className="mb-4">
+                                <Label htmlFor="email">Email Address</Label>
                                 <Input
                                     type="email"
                                     id="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    className="mt-1.5"
+                                    name="email"
+                                    value={values.email}
+                                    onChange={handleChange}
+                                    className={`mt-1.5 ${errors.email ? 'border-red-500' : ''}`}
+                                    aria-describedby="email-error"
                                 />
+                                {errors.email && (
+                                    <p id="email-error" className="text-sm text-red-500 mt-1">
+                                        {errors.email}
+                                    </p>
+                                )}
                             </div>
-                            <div className="mb-4">
-                                <Label htmlFor="password">Password</Label>
-                                <div className="relative mt-1 5">
-                                    <Input
-                                        type={showPassword ? 'text' : 'password'}
-                                        id="password"
-                                        value={password}
-                                        onChange={(e) => setPassword(e.target.value)}
-                                        className="pr-10"
-                                    />
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => setShowPassword(!showPassword)}
-                                        className="absolute right-0 top-0 h-full px-3"
-                                    >
-                                        {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-                                    </Button>
-                                </div>
-                                <p className="text-xs text-slate-500 mt-1">Minimum 6 characters</p>
-                            </div>
-                            <div className="mb-4">
-                                <Label htmlFor="confirmPassword">Confirm Password</Label>
-                                <div className="relative mt-1 5">
-                                    <Input
-                                        type={showConfirmPassword ? 'text' : 'password'}
-                                        id="confirmPassword"
-                                        value={confirmPassword}
-                                        onChange={(e) => setConfirmPassword(e.target.value)}
-                                        className="pr-10"
-                                    />
-                                    <Button
-                                        type="button"
-                                        variant="ghost"
-                                        size="icon"
-                                        onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                                        className="absolute right-0 top-0 h-full px-3"
-                                    >
-                                        {showConfirmPassword ? (
-                                            <EyeOff size={16} />
-                                        ) : (
-                                            <Eye size={16} />
-                                        )}
-                                    </Button>
-                                </div>
-                            </div>
+                            {/* Password */}
+                            <PasswordInput
+                                id="password"
+                                name="password"
+                                label="Password"
+                                value={values.password}
+                                onChange={handleChange}
+                                error={errors.password}
+                            />
+                            {/* Password strength indicator */}
+                            <PasswordStrengthIndicator strength={passwordStrength} />
+                            {/* Password Confirm */}
+                            <PasswordInput
+                                id="passwordConfirm"
+                                name="passwordConfirm"
+                                label="Confirm Password"
+                                value={values.passwordConfirm}
+                                onChange={handleChange}
+                                error={errors.passwordConfirm}
+                            />
                             <Button
                                 type="submit"
                                 className="w-full mb-4 bg-green-600 hover:bg-green-700"
+                                disabled={isLoading || !isFormValid}
                             >
-                                Create Account
+                                {isLoading ? (
+                                    <>
+                                        <Loader2 className="mr-2 h-4 animate-spin" />
+                                        Creating account...
+                                    </>
+                                ) : (
+                                    'Create Account'
+                                )}
                             </Button>
                             <div className="text-center">
                                 <p className="text-sm">
