@@ -6,10 +6,12 @@ import {
     Card,
     CardContent,
     Input,
-    Label,
     Button,
     Alert,
+    AlertTitle,
     AlertDescription,
+    Field,
+    FieldControl,
     PasswordInput,
     PasswordStrengthIndicator,
 } from '../components/ui';
@@ -45,84 +47,70 @@ const Register: React.FC = () => {
                         </motion.h5>
                         {errors.general && (
                             <Alert variant="destructive" className="mb-4">
+                                <AlertTitle>Error</AlertTitle>
                                 <AlertDescription>{errors.general}</AlertDescription>
                             </Alert>
                         )}
                         <form onSubmit={handleSubmit}>
                             {/* First Name */}
-                            <div className="mb-4">
-                                <Label htmlFor="firstName">First Name</Label>
-                                <Input
-                                    type="text"
-                                    id="firstName"
-                                    name="firstName"
-                                    value={values.firstName}
-                                    onChange={handleChange}
-                                    className={`mt-1.5 ${errors.firstName ? 'border-red-500' : ''}`}
-                                    aria-describedby="firstName-error"
-                                />
-                                {errors.firstName && (
-                                    <p id="firstName-error" className="text-red-500 text-sm">
-                                        {errors.firstName}
-                                    </p>
-                                )}
-                            </div>
+                            <Field id="firstName" label="First Name" error={errors.firstName}>
+                                <FieldControl>
+                                    <Input
+                                        type="text"
+                                        name="firstName"
+                                        value={values.firstName}
+                                        onChange={handleChange}
+                                    />
+                                </FieldControl>
+                            </Field>
                             {/* Last Name */}
-                            <div className="mb-4">
-                                <Label htmlFor="lastName">Last Name</Label>
-                                <Input
-                                    type="text"
-                                    id="lastName"
-                                    name="lastName"
-                                    value={values.lastName}
-                                    onChange={handleChange}
-                                    className={`mt-1.5 ${errors.lastName ? 'border-red-500' : ''}`}
-                                    aria-describedby="lastName-error"
-                                />
-                                {errors.lastName && (
-                                    <p id="lastName-error" className="text-red-500 text-sm">
-                                        {errors.lastName}
-                                    </p>
-                                )}
-                            </div>
+                            <Field id="lastName" label="Last Name" error={errors.lastName}>
+                                <FieldControl>
+                                    <Input
+                                        type="text"
+                                        name="lastName"
+                                        value={values.lastName}
+                                        onChange={handleChange}
+                                    />
+                                </FieldControl>
+                            </Field>
                             {/* Email */}
-                            <div className="mb-4">
-                                <Label htmlFor="email">Email Address</Label>
-                                <Input
-                                    type="email"
-                                    id="email"
-                                    name="email"
-                                    value={values.email}
-                                    onChange={handleChange}
-                                    className={`mt-1.5 ${errors.email ? 'border-red-500' : ''}`}
-                                    aria-describedby="email-error"
-                                />
-                                {errors.email && (
-                                    <p id="email-error" className="text-sm text-red-500 mt-1">
-                                        {errors.email}
-                                    </p>
-                                )}
-                            </div>
+                            <Field id="email" label="Email" error={errors.email}>
+                                <FieldControl>
+                                    <Input
+                                        type="email"
+                                        name="email"
+                                        value={values.email}
+                                        onChange={handleChange}
+                                    />
+                                </FieldControl>
+                            </Field>
                             {/* Password */}
-                            <PasswordInput
-                                id="password"
-                                name="password"
-                                label="Password"
-                                value={values.password}
-                                onChange={handleChange}
-                                error={errors.password}
-                            />
-                            {/* Password strength indicator */}
-                            <PasswordStrengthIndicator strength={passwordStrength} />
+                            <Field id="password" label="Password" error={errors.password}>
+                                <FieldControl>
+                                    <PasswordInput
+                                        name="password"
+                                        value={values.password}
+                                        onChange={handleChange}
+                                    />
+                                </FieldControl>
+                                {/* Password strength indicator */}
+                                <PasswordStrengthIndicator strength={passwordStrength} />
+                            </Field>
                             {/* Password Confirm */}
-                            <PasswordInput
+                            <Field
                                 id="passwordConfirm"
-                                name="passwordConfirm"
                                 label="Confirm Password"
-                                value={values.passwordConfirm}
-                                onChange={handleChange}
                                 error={errors.passwordConfirm}
-                            />
+                            >
+                                <FieldControl>
+                                    <PasswordInput
+                                        name="passwordConfirm"
+                                        value={values.passwordConfirm}
+                                        onChange={handleChange}
+                                    />
+                                </FieldControl>
+                            </Field>
                             <Button
                                 type="submit"
                                 className="w-full mb-4 bg-green-600 hover:bg-green-700"

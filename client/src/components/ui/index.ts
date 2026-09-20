@@ -122,6 +122,7 @@ export {
     DropdownMenuSubTrigger,
     DropdownMenuSubContent,
 } from './dropdown-menu';
+export { Field, FieldControl } from './field';
 export {
     useFormField,
     Form,
