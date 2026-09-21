@@ -32,12 +32,12 @@ const api = axios.create({
  *     <li><b>500 Internal Server Error</b> - Log and show user-friendly message</li>
  * </ul>
  */
-export const errorHandler = (error: any) => {
+export const errorHandler = (error: unknown): Promise<never> => {
     // TODO: Implement proper error handling with Redux
     // - On 401: dispatch logout, clear user state, redirect to /login
     // - On 403: show "Access Denied" notification
     // - On 500: show generic error message
-    if (error.response?.status === 401) {
+    if (axios.isAxiosError(error) && error.response?.status === 401) {
         console.warn('Unauthorized - user needs to log in again.');
         // Will be handled by thunk logic
     }
