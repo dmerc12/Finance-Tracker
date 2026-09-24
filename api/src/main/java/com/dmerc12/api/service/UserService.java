@@ -73,7 +73,8 @@ public interface UserService {
      *
      * @param request the password change data (must contain the old password)
      * @throws com.dmerc12.api.exception.ResourceNotFoundException if the user does not exist
-     * @throws com.dmerc12.api.exception.PasswordMismatchException if new password and new confirmation password do not match
+     * @throws com.dmerc12.api.exception.PasswordMismatchException if new password and new confirmation password
+     *                                                              do not match
      */
     void changePassword(PasswordChangeRequest request);
 
