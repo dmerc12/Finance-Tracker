@@ -1,6 +1,6 @@
-import { Loader2 } from 'lucide-react';
+import { useRegister } from '../../hooks';
 import { Link } from 'react-router-dom';
-import { useRegister } from '../hooks';
+import { Loader2 } from 'lucide-react';
 import { motion } from 'motion/react';
 import {
     Card,
@@ -14,7 +14,7 @@ import {
     FieldControl,
     PasswordInput,
     PasswordStrengthIndicator,
-} from '../components/ui';
+} from '../../components/ui';
 import React from 'react';
 
 const Register: React.FC = () => {

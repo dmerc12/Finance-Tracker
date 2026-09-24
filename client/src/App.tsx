@@ -6,7 +6,7 @@ import Dashboard from './pages/Dashboard';
 import Analytics from './pages/Analytics';
 import NotFound from './pages/NotFound';
 import Settings from './pages/Settings';
-import Register from './pages/Register';
+import Register from './pages/register';
 import Accounts from './pages/Accounts';
 import Login from './pages/Login';
 
