@@ -15,8 +15,10 @@ import axios from 'axios';
  * <p><b>CORS Note:</b>
  * The backend must allow credentials and list the frontend origin in CORS configuration.
  */
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
+const baseURL = API_BASE_URL ? `${API_BASE_URL}/api` : 'http://localhost:8080/api';
 const api = axios.create({
-    baseURL: import.meta.env.VITE_API_BASE_URL + '/api' || 'http://localhost:8080/api',
+    baseURL,
     headers: {
         'Content-Type': 'application/json',
     },
