@@ -232,7 +232,7 @@ export {
 } from './sidebar';
 export { Skeleton } from './skeleton';
 export { Slider } from './slider';
-export { Sonner } from './sonner';
+export { Toaster } from './sonner';
 export { Switch } from './switch';
 export {
     Table,

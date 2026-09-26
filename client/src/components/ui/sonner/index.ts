@@ -1,3 +1,3 @@
-import Sonner from './sonner';
+import Toaster from './sonner';
 
-export { Sonner };
+export { Toaster };

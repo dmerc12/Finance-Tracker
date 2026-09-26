@@ -6,6 +6,7 @@ import { getPasswordStrength } from '../../utils';
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from '../useForm';
+import { toast } from 'sonner';
 
 type RegisterErrors = Partial<Record<keyof RegisterRequest, string>> & {
     general?: string;
@@ -54,6 +55,9 @@ export default function useRegister() {
         try {
             await dispatch(register(values)).unwrap();
             // registration successful, navigate to login
+            toast.success('Account created!', {
+                description: 'Please log in to continue.',
+            });
             navigate('/login');
         } catch (error: unknown) {
             // error is the object we rejected with: { message, fieldErrors }
@@ -65,7 +69,9 @@ export default function useRegister() {
                 });
             } else {
                 // If no field errors, show the top-level message
-                setGeneralError(rejected.message || 'Registration failed');
+                const message = rejected.message || 'Registration failed';
+                setGeneralError(message);
+                toast.error('Registration failed', { description: message });
             }
         }
     };
