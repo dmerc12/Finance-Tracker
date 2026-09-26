@@ -3,6 +3,7 @@ package com.dmerc12.api.audit;
 import com.dmerc12.api.entity.AuditLog;
 import com.dmerc12.api.repository.AuditLogRepository;
 import jakarta.servlet.http.HttpServletRequest;
+import org.jspecify.annotations.NonNull;
 import org.jspecify.annotations.Nullable;
 import org.springframework.boot.actuate.audit.AuditEvent;
 import org.springframework.boot.actuate.audit.AuditEventRepository;
@@ -58,14 +59,25 @@ public class JpaAuditEventRepository implements AuditEventRepository {
      * @param event the audit event to persist
      */
     @Override
-    public void add(AuditEvent event) {
+    public void add(@NonNull AuditEvent event) {
+        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
+        // Skip auditing traffic to actuator endpoints (Prometheus, health checks, etc.)
+        if (attributes != null) {
+            String uri = attributes.getRequest().getRequestURI();
+            if (uri.startsWith("/actuator")) {
+                return;
+            }
+        }
+        Object uriFromData = event.getData().get("requestURI");
+        if (uriFromData instanceof String s && s.startsWith("/actuator")) {
+            return;
+        }
+        // Capture request context (IP, User-Agent)
         AuditLog log = new AuditLog();
         log.setEventType(event.getType());
         log.setPrincipal(event.getPrincipal());
         log.setTimestamp(event.getTimestamp());
         log.setData(event.getData());
-        // Capture request context (IP, User-Agent)
-        ServletRequestAttributes attributes = (ServletRequestAttributes) RequestContextHolder.getRequestAttributes();
         if (attributes != null) {
             HttpServletRequest request = attributes.getRequest();
             log.setIpAddress(request.getRemoteAddr());

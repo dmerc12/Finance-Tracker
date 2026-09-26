@@ -41,7 +41,7 @@ services:
       postgres:
         condition: service_healthy
     healthcheck:
-      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:8080/actuator/health"]
+      test: ["CMD", "wget", "--quiet", "--tries=1", "--spider", "http://localhost:9091/actuator/health"]
       interval: 30s
       timeout: 10s
       retries: 4
@@ -54,7 +54,7 @@ services:
       target: development
     container_name: finance-tracker-dev
     environment:
-      VITE_API_URL: http://localhost:8080
+      VITE_API_BASE_URL: http://localhost:8080
     ports:
       - "5173:5173"
     volumes:
@@ -69,7 +69,7 @@ services:
       dockerfile: Dockerfile
       target: production
       args:
-        VITE_API_URL: http://localhost:8080
+        VITE_API_BASE_URL: http://localhost:8080
     container_name: finance-tracker-prod
     ports:
       - "80:80"

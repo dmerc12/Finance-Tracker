@@ -42,6 +42,10 @@ public class JwtAuthenticationEntryPoint implements AuthenticationEntryPoint {
     @Override
     public void commence(@NonNull HttpServletRequest request, HttpServletResponse response,
                          @NonNull AuthenticationException authException) throws IOException {
+        if (request.getRequestURI().startsWith("/actuator")) {
+            response.sendError(HttpServletResponse.SC_OK);
+            return;
+        }
         log.warn("Authentication failed: {}", authException.getMessage());
         response.setStatus(HttpStatus.UNAUTHORIZED.value());
         response.setContentType(MediaType.APPLICATION_JSON_VALUE);
