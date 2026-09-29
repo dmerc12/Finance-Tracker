@@ -1,3 +1,7 @@
-import { getPasswordStrength } from './passwordStrength';
+import {
+    getPasswordStrength,
+    checkPasswordRequirements,
+    type PasswordRequirement,
+} from './passwordStrength';
 
-export { getPasswordStrength };
+export { getPasswordStrength, checkPasswordRequirements, type PasswordRequirement };
