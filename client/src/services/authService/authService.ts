@@ -11,8 +11,6 @@ import type {
  * Authentication API service with HTTP-only cookie support.
  * <p>All methods use the axios instance with {@code withCredentials: true},
  * so the JWT cookie is automatically sent with every request.
- * <p><b>Important:</b> These are placeholder implementations.
- * Full endpoints will be implemented when the backend authentication endpoints re ready.
  */
 export const authService = {
     /**
