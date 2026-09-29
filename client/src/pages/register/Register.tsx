@@ -13,13 +13,21 @@ import {
     Field,
     FieldControl,
     PasswordInput,
-    PasswordStrengthIndicator,
+    PasswordFeedback,
 } from '../../components/ui';
 import React from 'react';
 
 const Register: React.FC = () => {
-    const { values, errors, passwordStrength, isLoading, handleSubmit, handleChange, isFormValid } =
-        useRegister();
+    const {
+        values,
+        errors,
+        passwordStrength,
+        isLoading,
+        handleSubmit,
+        handleChange,
+        handleBlur,
+        isFormValid,
+    } = useRegister();
 
     return (
         <div className="min-h-screen flex items-center justify-center bg-slate-50 px-4">
@@ -60,6 +68,7 @@ const Register: React.FC = () => {
                                         name="firstName"
                                         value={values.firstName}
                                         onChange={handleChange}
+                                        onBlur={handleBlur}
                                     />
                                 </FieldControl>
                             </Field>
@@ -71,6 +80,7 @@ const Register: React.FC = () => {
                                         name="lastName"
                                         value={values.lastName}
                                         onChange={handleChange}
+                                        onBlur={handleBlur}
                                     />
                                 </FieldControl>
                             </Field>
@@ -82,6 +92,7 @@ const Register: React.FC = () => {
                                         name="email"
                                         value={values.email}
                                         onChange={handleChange}
+                                        onBlur={handleBlur}
                                     />
                                 </FieldControl>
                             </Field>
@@ -92,10 +103,17 @@ const Register: React.FC = () => {
                                         name="password"
                                         value={values.password}
                                         onChange={handleChange}
+                                        onBlur={handleBlur}
                                     />
                                 </FieldControl>
-                                {/* Password strength indicator */}
-                                <PasswordStrengthIndicator strength={passwordStrength} />
+                                {/* Password feedback */}
+                                <PasswordFeedback
+                                    password={values.password}
+                                    firstName={values.firstName}
+                                    lastName={values.lastName}
+                                    email={values.email}
+                                    strength={passwordStrength}
+                                />
                             </Field>
                             {/* Password Confirm */}
                             <Field
@@ -108,6 +126,7 @@ const Register: React.FC = () => {
                                         name="passwordConfirm"
                                         value={values.passwordConfirm}
                                         onChange={handleChange}
+                                        onBlur={handleBlur}
                                     />
                                 </FieldControl>
                             </Field>

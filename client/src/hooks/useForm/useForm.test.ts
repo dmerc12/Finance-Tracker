@@ -1,6 +1,6 @@
+import React, { type ChangeEvent, type FocusEvent } from 'react';
 import { renderHook, act } from '@testing-library/react';
 import { useForm } from '../useForm';
-import React from 'react';
 
 interface TestForm {
     email: string;
@@ -121,5 +121,94 @@ describe('useForm', () => {
         });
         expect(isValid!).toBe(true);
         expect(result.current.errors).toEqual({});
+    });
+
+    describe('validation timing', () => {
+        it('does not show errors for untouched fields', () => {
+            const { result } = renderHook(() =>
+                useForm({
+                    initialValues: { email: '' },
+                    validate: (v) => (!v.email ? { email: 'required' } : {}),
+                })
+            );
+            expect(result.current.errors).toEqual({});
+        });
+
+        it('shows an error after the field is blurred', () => {
+            const { result } = renderHook(() =>
+                useForm({
+                    initialValues: { email: '' },
+                    validate: (v) => (!v.email ? { email: 'required' } : {}),
+                })
+            );
+            act(() => {
+                result.current.handleBlur({
+                    target: { name: 'email' },
+                } as FocusEvent<HTMLInputElement>);
+            });
+            expect(result.current.errors.email).toBe('required');
+        });
+
+        it('clears the error as the user types a valid value', () => {
+            const { result } = renderHook(() =>
+                useForm({
+                    initialValues: { email: '' },
+                    validate: (v) => (!v.email ? { email: 'required' } : {}),
+                })
+            );
+            act(() => {
+                result.current.handleBlur({
+                    target: { name: 'email' },
+                } as FocusEvent<HTMLInputElement>);
+            });
+            expect(result.current.errors.email).toBe('required');
+            act(() => {
+                result.current.handleChange({
+                    target: { name: 'email', value: 'x@y.com' },
+                } as ChangeEvent<HTMLInputElement>);
+            });
+            expect(result.current.errors.email).toBeUndefined();
+        });
+
+        it('does not validate untouched fields when a different field changes', () => {
+            const { result } = renderHook(() =>
+                useForm({
+                    initialValues: { email: '', name: '' },
+                    validate: (v) => ({
+                        ...(v.email ? {} : { email: 'required' }),
+                        ...(v.name ? {} : { name: 'required' }),
+                    }),
+                })
+            );
+            act(() => {
+                result.current.handleChange({
+                    target: { name: 'email', value: 'x' },
+                } as ChangeEvent<HTMLInputElement>);
+            });
+            expect(result.current.errors.name).toBeUndefined();
+        });
+
+        it('marks all fields touched after validateForm', () => {
+            const { result } = renderHook(() =>
+                useForm({
+                    initialValues: { email: '', name: '' },
+                    validate: (v) => ({
+                        ...(v.email ? {} : { email: 'required' }),
+                        ...(v.name ? {} : { name: 'required' }),
+                    }),
+                })
+            );
+            act(() => {
+                result.current.validateForm();
+            });
+            expect(result.current.errors.email).toBe('required');
+            expect(result.current.errors.name).toBe('required');
+            act(() => {
+                result.current.handleChange({
+                    target: { name: 'email', value: 'a@b.com' },
+                } as ChangeEvent<HTMLInputElement>);
+            });
+            expect(result.current.errors.email).toBeUndefined();
+        });
     });
 });

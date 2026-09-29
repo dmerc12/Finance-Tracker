@@ -36,37 +36,53 @@ const createSubmitEvent = (): SubmitEvent<HTMLFormElement> => {
 
 // Test component that uses the hook
 const TestComponent = () => {
-    const { values, errors, handleChange, handleSubmit, isFormValid, isLoading } = useRegister();
+    const { values, errors, handleChange, handleBlur, handleSubmit, isFormValid, isLoading } =
+        useRegister();
     return (
         <form onSubmit={handleSubmit}>
-            <input name="email" placeholder="Email" value={values.email} onChange={handleChange} />
+            <input
+                name="email"
+                placeholder="Email"
+                value={values.email}
+                onChange={handleChange}
+                onBlur={handleBlur}
+            />
             <input
                 name="firstName"
                 placeholder="First Name"
                 value={values.firstName}
                 onChange={handleChange}
+                onBlur={handleBlur}
             />
             <input
                 name="lastName"
                 placeholder="Last Name"
                 value={values.lastName}
                 onChange={handleChange}
+                onBlur={handleBlur}
             />
             <input
                 name="password"
                 placeholder="Password"
                 value={values.password}
                 onChange={handleChange}
+                onBlur={handleBlur}
             />
             <input
                 name="passwordConfirm"
                 placeholder="Confirm Password"
                 value={values.passwordConfirm}
                 onChange={handleChange}
+                onBlur={handleBlur}
             />
             <button type="submit" disabled={!isFormValid || isLoading}>
                 Submit
             </button>
+            {errors.email && <p>{errors.email}</p>}
+            {errors.firstName && <p>{errors.firstName}</p>}
+            {errors.lastName && <p>{errors.lastName}</p>}
+            {errors.password && <p>{errors.password}</p>}
+            {errors.passwordConfirm && <p>{errors.passwordConfirm}</p>}
             {errors.general && <div role="alert">{errors.general}</div>}
         </form>
     );
@@ -251,5 +267,49 @@ describe('useRegister', () => {
         await submitForm(result.current);
         expect(result.current.errors.email).toBe('Email already taken');
         expect(result.current.errors.general).toBe('');
+    });
+
+    it('keeps the submit button disabled when email is invalid but all fields are filled', async () => {
+        const user = userEvent.setup();
+        renderWithProviders(store);
+        await user.type(screen.getByPlaceholderText('Email'), 'not-an-email');
+        await user.type(screen.getByPlaceholderText('First Name'), 'John');
+        await user.type(screen.getByPlaceholderText('Last Name'), 'Doe');
+        await user.type(screen.getByPlaceholderText('Password'), 'StrongP@ss1');
+        await user.type(screen.getByPlaceholderText('Confirm Password'), 'StrongP@ss1');
+        expect(screen.getByRole('button')).toBeDisabled();
+    });
+
+    describe('live validation', () => {
+        it('shows an email error after the email field is blurred', async () => {
+            const user = userEvent.setup();
+            renderWithProviders(store);
+            const email = screen.getByPlaceholderText('Email');
+            await user.type(email, 'not-an-email');
+            await user.tab();
+            expect(screen.getByText(/valid email address/i)).toBeInTheDocument();
+        });
+
+        it('clears the email error as the user fixes it', async () => {
+            const user = userEvent.setup();
+            renderWithProviders(store);
+            const email = screen.getByPlaceholderText('Email');
+            await user.type(email, 'not-an-email');
+            await user.tab();
+            expect(screen.getByText(/valid email address/i)).toBeInTheDocument();
+            await user.clear(email);
+            await user.click(email);
+            await user.type(email, 'x@y.com');
+            expect(screen.queryByText(/valid email address/i)).not.toBeInTheDocument();
+        });
+
+        it('shows a required error for an empty password field after blur', async () => {
+            const user = userEvent.setup();
+            renderWithProviders(store);
+            const password = screen.getByPlaceholderText('Password');
+            await user.click(password);
+            await user.tab();
+            expect(screen.getByText(/password is required/i)).toBeInTheDocument();
+        });
     });
 });

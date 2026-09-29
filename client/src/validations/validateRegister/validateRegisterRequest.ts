@@ -13,25 +13,29 @@ export default function validateRegisterRequest(values: Partial<RegisterRequest>
     if (!values.password) {
         errors.password = 'Password is required';
     } else {
-        const strength = getPasswordStrength(values.password);
-        if (strength < 5) {
-            errors.password =
-                'Password must be at least 8 characters and include uppercase, lowercase, digit, and special character';
+        const strength = getPasswordStrength(
+            values.password,
+            values.firstName,
+            values.lastName,
+            values.email
+        );
+        if (strength < 6) {
+            errors.password = "Password doesn't meet the requirements yet";
         }
     }
     // Confirm password
     if (!values.passwordConfirm) {
-        errors.passwordConfirm = 'Password confirmation is required';
+        errors.passwordConfirm = 'Please confirm your password';
     } else if (values.password !== values.passwordConfirm) {
         errors.passwordConfirm = 'Passwords do not match';
     }
     // First name
     if (!values.firstName) errors.firstName = 'First name is required';
     else if (values.firstName.length > 100)
-        errors.firstName = 'First name cannot exceed 100 characters';
+        errors.firstName = 'First name must be 100 characters or fewer';
     // Last name
     if (!values.lastName) errors.lastName = 'Last name is required';
     else if (values.lastName.length > 100)
-        errors.lastName = 'Last name cannot exceed 100 characters';
+        errors.lastName = 'Last name must be 100 characters or fewer';
     return errors;
 }

@@ -17,31 +17,30 @@ export default function useRegister() {
     const navigate = useNavigate();
     const { isLoading } = useSelector((state: RootState) => state.auth);
     // Form fields
-    const { values, errors, setFieldError, handleChange, validateForm } = useForm<RegisterRequest>({
-        initialValues: {
-            email: '',
-            firstName: '',
-            lastName: '',
-            password: '',
-            passwordConfirm: '',
-        },
-        validate: validateRegisterRequest,
-    });
+    const { values, errors, setFieldError, handleChange, handleBlur, validateForm } =
+        useForm<RegisterRequest>({
+            initialValues: {
+                email: '',
+                firstName: '',
+                lastName: '',
+                password: '',
+                passwordConfirm: '',
+            },
+            validate: validateRegisterRequest,
+        });
     const [generalError, setGeneralError] = useState<string>('');
-    const passwordStrength = getPasswordStrength(values.password);
+    const passwordStrength = getPasswordStrength(
+        values.password,
+        values.firstName,
+        values.lastName,
+        values.email
+    );
 
-    const isFormValid = useMemo(() => {
-        const hasFieldError = Object.values(errors).some((msg) => msg && msg.length > 0);
-        const hasGeneralError = generalError.length > 0;
-        const allFilled = !!(
-            values.email &&
-            values.password &&
-            values.passwordConfirm &&
-            values.firstName &&
-            values.lastName
-        );
-        return !hasFieldError && !hasGeneralError && allFilled;
-    }, [errors, generalError, values]);
+    const clientErrors = useMemo(() => validateRegisterRequest(values), [values]);
+    const isFormValid = useMemo(
+        () => Object.keys(clientErrors).length === 0 && generalError.length === 0,
+        [clientErrors, generalError]
+    );
 
     const handleSubmit = async (e: React.SubmitEvent) => {
         e.preventDefault();
@@ -85,6 +84,7 @@ export default function useRegister() {
         isLoading,
         handleSubmit,
         handleChange,
+        handleBlur,
         isFormValid,
     };
 }

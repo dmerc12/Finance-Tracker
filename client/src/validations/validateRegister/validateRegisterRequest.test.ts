@@ -53,6 +53,24 @@ describe('validateRegisterRequest', () => {
         );
     });
 
+    it('checks password is not similar to first name', () => {
+        expect(validateRegisterRequest({ ...validValues, password: 'Joh123!$' })).toHaveProperty(
+            'password'
+        );
+    });
+
+    it('checks password is not similar to last name', () => {
+        expect(validateRegisterRequest({ ...validValues, password: 'Doe123!$' })).toHaveProperty(
+            'password'
+        );
+    });
+
+    it('checks password is not similar to email', () => {
+        expect(validateRegisterRequest({ ...validValues, password: 'Tes123!$' })).toHaveProperty(
+            'password'
+        );
+    });
+
     it('requires password confirmation', () => {
         expect(validateRegisterRequest({ ...validValues, passwordConfirm: '' })).toHaveProperty(
             'passwordConfirm'

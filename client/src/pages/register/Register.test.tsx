@@ -25,6 +25,7 @@ const baseHookReturn = {
     isFormValid: false,
     handleSubmit: vi.fn(),
     handleChange: vi.fn(),
+    handleBlur: vi.fn(),
 };
 
 const renderPage = () =>
@@ -38,6 +39,19 @@ describe('Register page', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         mockedUseRegister.mockReturnValue(baseHookReturn);
+    });
+
+    it('renders field error messages in a form-friendly way', () => {
+        mockedUseRegister.mockReturnValue({
+            ...baseHookReturn,
+            errors: {
+                firstName: 'First name must be 100 characters or fewer',
+                passwordConfirm: 'Please confirm your password',
+            },
+        });
+        renderPage();
+        expect(screen.getByText('First name must be 100 characters or fewer')).toBeInTheDocument();
+        expect(screen.getByText('Please confirm your password')).toBeInTheDocument();
     });
 
     describe('rendering', () => {
@@ -110,20 +124,83 @@ describe('Register page', () => {
         });
     });
 
-    describe('password strength indicator', () => {
-        it('does not render the indicator when strength is 0', () => {
+    describe('password feedback', () => {
+        it('does not render feedback when password is empty', () => {
             renderPage();
+            expect(screen.queryByText(/password requirements/i)).not.toBeInTheDocument();
             expect(screen.queryByText(/password strength/i)).not.toBeInTheDocument();
         });
 
-        it('renders the indicator when strength > 0', () => {
+        it('renders the info alert with the strength bar and requirements list', () => {
             mockedUseRegister.mockReturnValue({
                 ...baseHookReturn,
+                values: { ...baseHookReturn.values, password: 'Pass123!' },
                 passwordStrength: 4,
             });
             renderPage();
+            expect(screen.getByText(/password requirements/i)).toBeInTheDocument();
             expect(screen.getByText(/password strength/i)).toBeInTheDocument();
             expect(screen.getByText('Good')).toBeInTheDocument();
+            expect(
+                screen.getByRole('list', { name: /password requirements/i })
+            ).toBeInTheDocument();
+        });
+
+        it('renders six requirement items', () => {
+            mockedUseRegister.mockReturnValue({
+                ...baseHookReturn,
+                values: { ...baseHookReturn.values, password: 'abc' },
+                passwordStrength: 2,
+            });
+            renderPage();
+            expect(screen.getAllByRole('listitem')).toHaveLength(6);
+        });
+
+        it('flags the personalInfo requirement when password overlaps firstName', () => {
+            mockedUseRegister.mockReturnValue({
+                ...baseHookReturn,
+                values: {
+                    ...baseHookReturn.values,
+                    password: 'Dyl123!@',
+                    firstName: 'Dylan',
+                },
+                passwordStrength: 5,
+            });
+            renderPage();
+            const personalItem = screen
+                .getByText(/not similar to your name or email/i)
+                .closest('li');
+            expect(personalItem).toHaveTextContent('not met');
+        });
+
+        it('uses role="status" for the feedback (not role="alert")', () => {
+            mockedUseRegister.mockReturnValue({
+                ...baseHookReturn,
+                values: { ...baseHookReturn.values, password: 'abc' },
+                passwordStrength: 2,
+            });
+            renderPage();
+            expect(screen.getByRole('status')).toBeInTheDocument();
+            expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+        });
+
+        it('passes personal info to the feedback component', () => {
+            mockedUseRegister.mockReturnValue({
+                ...baseHookReturn,
+                values: {
+                    firstName: 'Dylan',
+                    lastName: 'Smith',
+                    email: 'dylan@example.com',
+                    password: 'Dyl123!@',
+                    passwordConfirm: '',
+                },
+                passwordStrength: 5,
+            });
+            renderPage();
+            const personalItem = screen
+                .getByText(/not similar to your name or email/i)
+                .closest('li');
+            expect(personalItem).toHaveTextContent('not met');
         });
     });
 
