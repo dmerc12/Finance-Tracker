@@ -9,7 +9,7 @@ import NotFound from './pages/NotFound';
 import Settings from './pages/Settings';
 import Register from './pages/register';
 import Accounts from './pages/Accounts';
-import Login from './pages/Login';
+import Login from './pages/login';
 
 function App() {
     return (
