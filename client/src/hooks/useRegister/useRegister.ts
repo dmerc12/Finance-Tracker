@@ -44,6 +44,7 @@ export default function useRegister() {
 
     const handleSubmit = async (e: React.SubmitEvent) => {
         e.preventDefault();
+        if (isLoading) return;
         // Run client-side validation
         const isValid = validateForm();
         if (!isValid || !isFormValid) {

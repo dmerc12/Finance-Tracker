@@ -37,7 +37,7 @@ export default function PasswordFeedback({
     if (!password) return null;
 
     return (
-        <Alert variant="info" role="status" className={className}>
+        <Alert variant="info" role="status" className={cn('mt-2', className)}>
             <Info className="size-4" />
             <AlertTitle>Password Requirements</AlertTitle>
             <AlertDescription>
