@@ -1,7 +1,7 @@
 import { type RegisterRequest } from '../../types';
 import { getPasswordStrength } from '../../utils';
 
-export default function validateRegisterRequest(values: Partial<RegisterRequest>) {
+export default function validateRegister(values: Partial<RegisterRequest>) {
     const errors: Partial<Record<keyof RegisterRequest, string>> = {};
     // Email
     if (!values.email) {

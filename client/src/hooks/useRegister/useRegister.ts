@@ -1,6 +1,6 @@
 import { type AppDispatch, type RootState, register } from '../../store';
-import { validateRegisterRequest } from '../../validations';
 import { useDispatch, useSelector } from 'react-redux';
+import { validateRegister } from '../../validations';
 import { type RegisterRequest } from '../../types';
 import { getPasswordStrength } from '../../utils';
 import React, { useState, useMemo } from 'react';
@@ -26,7 +26,7 @@ export default function useRegister() {
                 password: '',
                 passwordConfirm: '',
             },
-            validate: validateRegisterRequest,
+            validate: validateRegister,
         });
     const [generalError, setGeneralError] = useState<string>('');
     const passwordStrength = getPasswordStrength(
@@ -36,7 +36,7 @@ export default function useRegister() {
         values.email
     );
 
-    const clientErrors = useMemo(() => validateRegisterRequest(values), [values]);
+    const clientErrors = useMemo(() => validateRegister(values), [values]);
     const isFormValid = useMemo(
         () => Object.keys(clientErrors).length === 0 && generalError.length === 0,
         [clientErrors, generalError]
