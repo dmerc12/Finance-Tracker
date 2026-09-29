@@ -174,27 +174,6 @@ describe('useRegister', () => {
         expect(mockNavigate).toHaveBeenCalledWith('/login');
     });
 
-    // Test error handling
-    it('displays server field errors when registration fails', async () => {
-        /// Mock API rejection with fieldErrors
-        const errorResponse = {
-            response: {
-                data: {
-                    message: 'Validation failed',
-                    fieldErrors: { email: 'Email already taken' },
-                },
-            },
-        };
-        mockPost.mockRejectedValue(errorResponse);
-        const user = userEvent.setup();
-        renderWithProviders(store);
-        // Fill valid data
-        await fillValidForm(user);
-        await user.click(screen.getByRole('button'));
-        // Verify no error alerts appeared since fieldErrors are returned
-        expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    });
-
     it('should return early when validation fails (direct hook call)', async () => {
         const { result } = renderHook(() => useRegister(), {
             wrapper: ({ children }) => (

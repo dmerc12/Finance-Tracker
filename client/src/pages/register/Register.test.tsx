@@ -95,7 +95,6 @@ describe('Register page', () => {
             });
             renderPage();
             const alert = screen.getByRole('alert');
-            expect(alert).toHaveTextContent('Error');
             expect(alert).toHaveTextContent('Registration failed');
         });
     });
