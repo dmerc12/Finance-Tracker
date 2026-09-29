@@ -1,40 +1,16 @@
-import { vi } from 'vitest';
-
-// Mock the authService module
-vi.mock('../../services/api', () => ({
-    default: {
-        post: vi.fn(),
-        get: vi.fn(),
-    },
-}));
-
-// Mock useNavigate
-const mockNavigate = vi.fn();
-vi.mock('react-router-dom', async () => {
-    const actual = await vi.importActual('react-router-dom');
-    return {
-        ...actual,
-        useNavigate: () => mockNavigate,
-    };
-});
-
-import { render, screen, renderHook, act } from '@testing-library/react';
-import { configureStore, type Store } from '@reduxjs/toolkit';
-import authReducer from '../../store/slices/authSlice/authSlice.ts';
-import type { ChangeEvent, SubmitEvent } from 'react';
+import { screen, renderHook, act } from '@testing-library/react';
+import { mockPost, mockNavigate } from '../../test/mocks';
 import userEvent from '@testing-library/user-event';
-import { BrowserRouter } from 'react-router-dom';
+import type { ChangeEvent } from 'react';
 import useRegister from './useRegister';
-import { Provider } from 'react-redux';
-import api from '../../services/api';
+import { beforeEach } from 'vitest';
+import {
+    createTestStore,
+    createSubmitEvent,
+    renderWithProviders,
+    createHookWrapper,
+} from '../../test/test-utils';
 
-const createSubmitEvent = (): SubmitEvent<HTMLFormElement> => {
-    return {
-        preventDefault: vi.fn(),
-    } as unknown as SubmitEvent<HTMLFormElement>;
-};
-
-// Test component that uses the hook
 const TestComponent = () => {
     const { values, errors, handleChange, handleBlur, handleSubmit, isFormValid, isLoading } =
         useRegister();
@@ -88,18 +64,6 @@ const TestComponent = () => {
     );
 };
 
-// Helper to render with store and router
-const renderWithProviders = (store: Store) => {
-    return render(
-        <Provider store={store}>
-            <BrowserRouter>
-                <TestComponent />
-            </BrowserRouter>
-        </Provider>
-    );
-};
-
-// Helpers to fill all fields with valid data
 const fillValidForm = async (user: ReturnType<typeof userEvent.setup>) => {
     await user.type(screen.getByPlaceholderText('Email'), 'test@example.com');
     await user.type(screen.getByPlaceholderText('First Name'), 'John');
@@ -128,7 +92,6 @@ const fillValidFormFields = (hook: ReturnType<typeof useRegister>) => {
     });
 };
 
-// Helper to submit the form
 const submitForm = async (hook: ReturnType<typeof useRegister>) => {
     const submitEvent = createSubmitEvent();
     await act(async () => {
@@ -137,21 +100,16 @@ const submitForm = async (hook: ReturnType<typeof useRegister>) => {
     return submitEvent;
 };
 
-// ------ Tests ------
 describe('useRegister', () => {
-    let store: Store;
-    const mockPost = api.post as ReturnType<typeof vi.fn>;
+    let store: ReturnType<typeof createTestStore>;
 
     beforeEach(async () => {
-        store = configureStore({
-            reducer: { auth: authReducer },
-        });
-        vi.clearAllMocks();
+        store = createTestStore();
     });
 
     it('disables submit button when form is invalid', async () => {
         const user = userEvent.setup();
-        renderWithProviders(store);
+        renderWithProviders(<TestComponent />, store);
         // Fill invalid data (missing email)
         await user.type(screen.getByPlaceholderText('Email'), 'invalid');
         await user.type(screen.getByPlaceholderText('Password'), 'short');
@@ -166,7 +124,7 @@ describe('useRegister', () => {
         // Mock successful API call
         mockPost.mockResolvedValue({ data: { message: 'Registered' } });
         const user = userEvent.setup();
-        renderWithProviders(store);
+        renderWithProviders(<TestComponent />, store);
         // Fill valid data
         await fillValidForm(user);
         await user.click(screen.getByRole('button'));
@@ -176,11 +134,7 @@ describe('useRegister', () => {
 
     it('should return early when validation fails (direct hook call)', async () => {
         const { result } = renderHook(() => useRegister(), {
-            wrapper: ({ children }) => (
-                <Provider store={store}>
-                    <BrowserRouter>{children}</BrowserRouter>
-                </Provider>
-            ),
+            wrapper: createHookWrapper(store),
         });
         act(() => {
             result.current.handleChange({
@@ -212,11 +166,7 @@ describe('useRegister', () => {
             .spyOn(store, 'dispatch')
             .mockReturnValue(mockReject as unknown as ReturnType<typeof store.dispatch>);
         const { result } = renderHook(() => useRegister(), {
-            wrapper: ({ children }) => (
-                <Provider store={store}>
-                    <BrowserRouter>{children}</BrowserRouter>
-                </Provider>
-            ),
+            wrapper: createHookWrapper(store),
         });
         fillValidFormFields(result.current);
         await submitForm(result.current);
@@ -236,11 +186,7 @@ describe('useRegister', () => {
         };
         mockPost.mockRejectedValue(errorResponse);
         const { result } = renderHook(() => useRegister(), {
-            wrapper: ({ children }) => (
-                <Provider store={store}>
-                    <BrowserRouter>{children}</BrowserRouter>
-                </Provider>
-            ),
+            wrapper: createHookWrapper(store),
         });
         fillValidFormFields(result.current);
         await submitForm(result.current);
@@ -250,7 +196,7 @@ describe('useRegister', () => {
 
     it('keeps the submit button disabled when email is invalid but all fields are filled', async () => {
         const user = userEvent.setup();
-        renderWithProviders(store);
+        renderWithProviders(<TestComponent />, store);
         await user.type(screen.getByPlaceholderText('Email'), 'not-an-email');
         await user.type(screen.getByPlaceholderText('First Name'), 'John');
         await user.type(screen.getByPlaceholderText('Last Name'), 'Doe');
@@ -262,7 +208,7 @@ describe('useRegister', () => {
     describe('live validation', () => {
         it('shows an email error after the email field is blurred', async () => {
             const user = userEvent.setup();
-            renderWithProviders(store);
+            renderWithProviders(<TestComponent />, store);
             const email = screen.getByPlaceholderText('Email');
             await user.type(email, 'not-an-email');
             await user.tab();
@@ -271,7 +217,7 @@ describe('useRegister', () => {
 
         it('clears the email error as the user fixes it', async () => {
             const user = userEvent.setup();
-            renderWithProviders(store);
+            renderWithProviders(<TestComponent />, store);
             const email = screen.getByPlaceholderText('Email');
             await user.type(email, 'not-an-email');
             await user.tab();
@@ -284,7 +230,7 @@ describe('useRegister', () => {
 
         it('shows a required error for an empty password field after blur', async () => {
             const user = userEvent.setup();
-            renderWithProviders(store);
+            renderWithProviders(<TestComponent />, store);
             const password = screen.getByPlaceholderText('Password');
             await user.click(password);
             await user.tab();
