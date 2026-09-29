@@ -6,12 +6,13 @@ import * as React from 'react';
 function Alert({
     className,
     variant,
+    role = 'alert',
     ...props
 }: React.ComponentProps<'div'> & VariantProps<typeof alertVariants>) {
     return (
         <div
             data-slot="alert"
-            role="alert"
+            role={role}
             className={cn(alertVariants({ variant }), className)}
             {...props}
         />
