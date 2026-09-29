@@ -122,6 +122,7 @@ export {
     DropdownMenuSubTrigger,
     DropdownMenuSubContent,
 } from './dropdown-menu';
+export { Field, FieldControl } from './field';
 export {
     useFormField,
     Form,
@@ -174,6 +175,7 @@ export {
     PaginationNext,
     PaginationEllipsis,
 } from './pagination';
+export { PasswordInput, PasswordFeedback, PasswordStrengthIndicator } from './password';
 export { Popover, PopoverTrigger, PopoverContent, PopoverAnchor } from './popover';
 export { Progress } from './progress';
 export { RadioGroup, RadioGroupItem } from './radio-group';
@@ -230,7 +232,7 @@ export {
 } from './sidebar';
 export { Skeleton } from './skeleton';
 export { Slider } from './slider';
-export { Sonner } from './sonner';
+export { Toaster } from './sonner';
 export { Switch } from './switch';
 export {
     Table,

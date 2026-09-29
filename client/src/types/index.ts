@@ -8,3 +8,6 @@ export type {
     BalanceHistoryData,
     MonthlyActivityData,
 } from './analytics';
+export { type RegisterRequest } from './RegisterRequest';
+export { type ResponseDTO } from './ResponseDTO';
+export { type UserDTO } from './UserDTO';

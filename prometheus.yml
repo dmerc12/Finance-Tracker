@@ -3,7 +3,7 @@ global:
   evaluation_interval: 15s
 
 scrape_configs:
-  - job_name: 'spring-boot-api'
+  - job_name: 'finance-tracker-api'
     metrics_path: '/actuator/prometheus'
     static_configs:
-      - targets: ['api:8080']
+      - targets: ['api:9091']

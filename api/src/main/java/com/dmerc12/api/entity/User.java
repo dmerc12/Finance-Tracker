@@ -62,6 +62,7 @@ public class User extends BaseEntity {
      * Loaded eagerly because roles are typically needed immediately for authorization decisions.
      * <p>Stored in a separate table {@code user_roles} with a composite primary key of {@code (user_id, role)}.
      */
+    @Column(name = "role")
     @Enumerated(EnumType.STRING)
     @ElementCollection(fetch = FetchType.EAGER)
     @CollectionTable(

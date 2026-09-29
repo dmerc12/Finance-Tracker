@@ -41,7 +41,7 @@ public class TokenBlacklist {
      */
     public boolean isBlacklisted(String token) {
         Date expiry = blacklist.get(token);
-        if (expiry == null) return false;
+        if (expiry == null) { return false; }
         if (expiry.before(new Date())) {
             blacklist.remove(token);
             log.debug("Expired token removed from blacklist");

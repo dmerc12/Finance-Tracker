@@ -79,6 +79,7 @@ public class AuditLog {
      * </ul>
      */
     @JdbcTypeCode(SqlTypes.JSON)
+    @Column(columnDefinition = "jsonb", updatable = false)
     private Map<String, Object> data;
 
     /**

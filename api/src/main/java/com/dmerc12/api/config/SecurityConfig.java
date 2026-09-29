@@ -3,8 +3,10 @@ package com.dmerc12.api.config;
 import com.dmerc12.api.security.JwtAuthenticationEntryPoint;
 import com.dmerc12.api.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
@@ -79,7 +81,21 @@ public class SecurityConfig {
      * @param http the {@link HttpSecurity} object to configure
      * @return the configured {@link SecurityFilterChain}
      */
+
     @Bean
+    @Order(1)
+    public SecurityFilterChain actuatorSecurityFilterChain(HttpSecurity http) throws Exception {
+        http
+                // Health checks for Docker
+                .securityMatcher("/actuator/**")
+                .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+                .csrf(AbstractHttpConfigurer::disable)
+                .sessionManagement(s -> s.sessionCreationPolicy(SessionCreationPolicy.STATELESS));
+        return http.build();
+    }
+
+    @Bean
+    @Order(2)
     public SecurityFilterChain filterChain(HttpSecurity http) {
         http
                 // Configure CORS
@@ -90,10 +106,6 @@ public class SecurityConfig {
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(authEntryPoint))
                 .authorizeHttpRequests(auth -> auth
-                        // Health checks for Docker
-                        .requestMatchers("/actuator/health").permitAll()
-                        // Secure other actuator endpoints
-                        .requestMatchers("/actuator/**").hasRole("ADMIN")
                         // Public registration and refresh endpoints
                         .requestMatchers("/api/auth/register", "/api/auth/login", "/api/auth/refresh").permitAll()
                         // Authenticated by default
@@ -156,5 +168,17 @@ public class SecurityConfig {
     @Bean
     public AuthenticationManager authenticationManager(AuthenticationConfiguration config) {
         return config.getAuthenticationManager();
+    }
+
+    /**
+     * Tells Spring Boot not to wire filter into the servlet context automatically
+     * @param filter the filter JWT authentication configuration
+     * @return the {@link FilterRegistrationBean}
+     */
+    @Bean
+    public FilterRegistrationBean<JwtAuthenticationFilter> jwtFilterRegistration(JwtAuthenticationFilter filter) {
+        FilterRegistrationBean<JwtAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
+        registration.setEnabled(false);
+        return registration;
     }
 }
