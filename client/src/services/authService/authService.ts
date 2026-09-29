@@ -1,5 +1,11 @@
-import { type RegisterRequest } from '../../types';
 import api from '../api';
+import type {
+    ResponseDTO,
+    UserDTO,
+    RegisterRequest,
+    LoginRequest,
+    LoginResponse,
+} from '../../types';
 
 /**
  * Authentication API service with HTTP-only cookie support.
@@ -12,14 +18,11 @@ export const authService = {
     /**
      * Log in a user with email and password.
      * <p>The backend validates credentials and sets an HTTP-only cookie containing the JWT.
-     * @param email the user's email
-     * @param password the user's password
+     * @param data login data
      * @returns Promise with the response
      */
-    login: (email: string, password: string) => {
-        // TODO: implement login
-        console.log('Login called with:', { email, password });
-        return api.post('/auth/login', { email, password });
+    login: (data: LoginRequest) => {
+        return api.post<ResponseDTO<LoginResponse>>('/auth/login', data);
     },
     /**
      * Register a new user.
@@ -28,8 +31,7 @@ export const authService = {
      * @returns Promise with the response
      */
     register: (data: RegisterRequest) => {
-        console.log('Register called with:', data);
-        return api.post('/auth/register', data);
+        return api.post<ResponseDTO<UserDTO>>('/auth/register', data);
     },
     /**
      * Log out the current user.

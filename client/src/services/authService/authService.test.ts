@@ -1,7 +1,13 @@
 import { describe, it, expect, vi, beforeEach, type Mocked } from 'vitest';
-import type { RegisterRequest, UserDTO, ResponseDTO } from '../../types';
 import { authService } from '../authService';
 import api from '../api';
+import type {
+    RegisterRequest,
+    UserDTO,
+    ResponseDTO,
+    LoginRequest,
+    LoginResponse,
+} from '../../types';
 
 // Mock the entire api module
 vi.mock('../api', () => ({
@@ -16,6 +22,70 @@ const mockedAPI = api as Mocked<typeof api>;
 describe('authService', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+    });
+
+    describe('login', () => {
+        const mockData: LoginRequest = {
+            email: 'test@example.com',
+            password: 'Pass123!',
+        };
+
+        const mockLoginResponse: LoginResponse = {
+            accessToken: 'access.jwt.token',
+            refreshToken: 'refresh.jwt.token',
+            email: mockData.email,
+            firstName: 'John',
+            lastName: 'Doe',
+            roles: ['ROLE_USER'],
+        };
+
+        const mockSuccessResponse: ResponseDTO<LoginResponse> = {
+            message: 'Login successful',
+            data: mockLoginResponse,
+            status: 200,
+            timestamp: new Date().toISOString(),
+        };
+
+        it('calls api.post with /auth/login and the credentials', async () => {
+            mockedAPI.post.mockResolvedValue({ data: mockSuccessResponse });
+            const result = await authService.login(mockData);
+            expect(mockedAPI.post).toHaveBeenCalledTimes(1);
+            expect(mockedAPI.post).toHaveBeenCalledWith('/auth/login', mockData);
+            expect(result).toEqual({ data: mockSuccessResponse });
+        });
+
+        it('propagates network errors', async () => {
+            const error = new Error('Network error');
+            mockedAPI.post.mockRejectedValue(error);
+            await expect(authService.login(mockData)).rejects.toThrow('Network error');
+            expect(mockedAPI.post).toHaveBeenCalledWith('/auth/login', mockData);
+        });
+
+        it('propagates 401 invalid-credentials errors', async () => {
+            const errorResponse = {
+                response: {
+                    status: 401,
+                    data: {
+                        message: 'Invalid email or password',
+                        timestamp: new Date().toISOString(),
+                        status: 401,
+                        error: 'Unauthorized',
+                    },
+                },
+            };
+            mockedAPI.post.mockRejectedValue(errorResponse);
+            await expect(authService.login(mockData)).rejects.toEqual(
+                expect.objectContaining({
+                    response: expect.objectContaining({
+                        status: 401,
+                        data: expect.objectContaining({
+                            message: 'Invalid email or password',
+                            error: 'Unauthorized',
+                        }),
+                    }),
+                })
+            );
+        });
     });
 
     describe('register', () => {
