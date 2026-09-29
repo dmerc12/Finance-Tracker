@@ -1,5 +1,5 @@
+import type { RegisterRequest, LoginRequest } from '../../../types';
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import type { RegisterRequest } from '../../../types';
 import { authService } from '../../../services';
 import { getErrorData } from '../../../utils';
 
@@ -37,12 +37,16 @@ const initialState: AuthState = {
  */
 export const login = createAsyncThunk(
     'auth/login',
-    async ({ email, password }: { email: string; password: string }, { rejectWithValue }) => {
+    async (data: LoginRequest, { rejectWithValue }) => {
         try {
-            const response = await authService.login(email, password);
-            return response.data;
-        } catch (error: any) {
-            return rejectWithValue(error.response?.data?.message || 'Login failed');
+            const response = await authService.login(data);
+            return response.data.data;
+        } catch (error: unknown) {
+            const { message, fieldErrors } = getErrorData(error);
+            return rejectWithValue({
+                message: message || 'Login failed',
+                fieldErrors,
+            });
         }
     }
 );
