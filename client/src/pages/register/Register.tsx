@@ -8,7 +8,6 @@ import {
     Input,
     Button,
     Alert,
-    AlertTitle,
     AlertDescription,
     Field,
     FieldControl,
@@ -59,8 +58,9 @@ const Register: React.FC = () => {
                         </motion.p>
                         {errors.general && (
                             <Alert variant="destructive" className="mb-4">
-                                <AlertTitle>Error</AlertTitle>
-                                <AlertDescription>{errors.general}</AlertDescription>
+                                <AlertDescription className="text-center line-clamp-none">
+                                    {errors.general}
+                                </AlertDescription>
                             </Alert>
                         )}
                         <form noValidate onSubmit={handleSubmit}>

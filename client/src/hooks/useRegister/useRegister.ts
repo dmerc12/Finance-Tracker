@@ -62,9 +62,11 @@ export default function useRegister() {
         } catch (error: unknown) {
             // error is the object we rejected with: { message, fieldErrors }
             const rejected = error as { message: string; fieldErrors?: Record<string, string> };
-            if (rejected.fieldErrors) {
+            const fieldErrors = rejected.fieldErrors ?? {};
+            const hasFieldErrors = Object.keys(fieldErrors).length > 0;
+            if (hasFieldErrors) {
                 // Merge server-side field errors
-                Object.entries(rejected.fieldErrors).forEach(([field, msg]) => {
+                Object.entries(fieldErrors).forEach(([field, msg]) => {
                     setFieldError(field as keyof RegisterRequest, msg);
                 });
             } else {
