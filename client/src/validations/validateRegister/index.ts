@@ -1,3 +1,3 @@
-import validateRegisterRequest from './validateRegisterRequest';
+import validateRegisterRequest from './validateRegister.ts';
 
 export default validateRegisterRequest;

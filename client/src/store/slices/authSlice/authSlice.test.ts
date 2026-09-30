@@ -1,13 +1,20 @@
-import authReducer, { register, clearAuthError, resetAuthState } from './authSlice';
-import type { RegisterRequest, UserDTO, ResponseDTO } from '../../../types';
+import authReducer, { register, login, clearAuthError, resetAuthState } from './authSlice';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { type AxiosResponse, isAxiosError } from 'axios';
 import { configureStore } from '@reduxjs/toolkit';
 import { authService } from '../../../services';
-import { type AxiosResponse, isAxiosError } from 'axios';
+import type {
+    RegisterRequest,
+    LoginRequest,
+    LoginResponse,
+    UserDTO,
+    ResponseDTO,
+} from '../../../types';
 
 vi.mock('../../../services', () => ({
     authService: {
         register: vi.fn(),
+        login: vi.fn(),
     },
 }));
 
@@ -33,6 +40,98 @@ function createAxiosResponse<T>(data: T): AxiosResponse<T> {
 }
 
 describe('authSlice', () => {
+    describe('login', () => {
+        const mockData: LoginRequest = {
+            email: 'test@example.com',
+            password: 'Pass123!',
+        };
+
+        const mockLoginResponse: LoginResponse = {
+            accessToken: 'access.jwt.token',
+            refreshToken: 'refresh.jwt.token',
+            email: mockData.email,
+            firstName: 'John',
+            lastName: 'Doe',
+            roles: ['ROLE_USER'],
+        };
+
+        it('should handle login.pending and login.fulfilled', async () => {
+            const response: ResponseDTO<LoginResponse> = {
+                message: 'Login successful',
+                data: mockLoginResponse,
+                status: 200,
+                timestamp: new Date().toISOString(),
+            };
+            mockedAuthService.login.mockResolvedValue(createAxiosResponse(response));
+            const store = configureStore({ reducer: { auth: authReducer } });
+            const action = await store.dispatch(login(mockData));
+            expect(action.type).toBe(login.fulfilled.type);
+            expect(action.payload).toEqual(mockLoginResponse);
+            expect(store.getState().auth.isAuthenticated).toBe(true);
+            expect(store.getState().auth.isLoading).toBe(false);
+            expect(store.getState().auth.error.message).toBeNull();
+        });
+
+        it('should handle login.rejected with 401 invalid credentials', async () => {
+            const error = {
+                isAxiosError: true,
+                response: {
+                    status: 401,
+                    data: { message: 'Invalid email or password' },
+                },
+            };
+            mockedIsAxiosError.mockReturnValue(true);
+            mockedAuthService.login.mockRejectedValue(error);
+            const store = configureStore({ reducer: { auth: authReducer } });
+            const action = await store.dispatch(login(mockData));
+            expect(action.type).toBe(login.rejected.type);
+            expect(action.payload).toEqual({
+                message: 'Invalid email or password',
+                fieldErrors: {},
+            });
+            expect(store.getState().auth.isAuthenticated).toBe(false);
+            expect(store.getState().auth.isLoading).toBe(false);
+            expect(store.getState().auth.error.message).toBe('Invalid email or password');
+        });
+
+        it('should handle login.rejected with 400 validation fieldErrors', async () => {
+            const error = {
+                isAxiosError: true,
+                response: {
+                    status: 400,
+                    data: {
+                        message: 'Invalid request payload',
+                        fieldErrors: { email: 'Invalid email format' },
+                    },
+                },
+            };
+            mockedIsAxiosError.mockReturnValue(true);
+            mockedAuthService.login.mockRejectedValue(error);
+            const store = configureStore({ reducer: { auth: authReducer } });
+            const action = await store.dispatch(login(mockData));
+            expect(action.type).toBe(login.rejected.type);
+            expect(action.payload).toEqual({
+                message: 'Invalid request payload',
+                fieldErrors: { email: 'Invalid email format' },
+            });
+            expect(store.getState().auth.error.fieldErrors).toStrictEqual({
+                email: 'Invalid email format',
+            });
+        });
+
+        it('should handle login.rejected with generic error', async () => {
+            mockedIsAxiosError.mockReturnValue(false);
+            mockedAuthService.login.mockRejectedValue(new Error('Network error'));
+            const store = configureStore({ reducer: { auth: authReducer } });
+            const action = await store.dispatch(login(mockData));
+            expect(action.type).toBe(login.rejected.type);
+            expect(action.payload).toEqual({
+                message: 'Network error',
+                fieldErrors: {},
+            });
+        });
+    });
+
     describe('register', () => {
         const mockData: RegisterRequest = {
             email: 'test@example.com',

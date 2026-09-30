@@ -1,4 +1,21 @@
+import { mockPost, mockGet, mockNavigate } from './mocks';
 import '@testing-library/jest-dom';
+import { vi } from 'vitest';
+
+vi.mock('../services/api', () => ({
+    default: {
+        post: mockPost,
+        get: mockGet,
+    },
+}));
+
+vi.mock('react-router-dom', async () => {
+    const actual = await vi.importActual('react-router-dom');
+    return {
+        ...actual,
+        useNavigate: () => mockNavigate,
+    };
+});
 
 /**
  * jsdom does not implement window.matchMedia, which Sonner and recharts

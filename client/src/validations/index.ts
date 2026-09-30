@@ -1,3 +1,4 @@
-import validateRegisterRequest from './validateRegister';
+import validateRegister from './validateRegister';
+import validateLogin from './validateLogin';
 
-export { validateRegisterRequest };
+export { validateRegister, validateLogin };
