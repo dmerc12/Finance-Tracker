@@ -1,9 +1,9 @@
+import React, { useState, useMemo, useCallback, type ChangeEvent } from 'react';
 import { type AppDispatch, type RootState, register } from '../../store';
 import { useDispatch, useSelector } from 'react-redux';
 import { validateRegister } from '../../validations';
 import { type RegisterRequest } from '../../types';
 import { getPasswordStrength } from '../../utils';
-import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from '../useForm';
 import { toast } from 'sonner';
@@ -17,17 +17,23 @@ export default function useRegister() {
     const navigate = useNavigate();
     const { isLoading } = useSelector((state: RootState) => state.auth);
     // Form fields
-    const { values, errors, setFieldError, handleChange, handleBlur, validateForm } =
-        useForm<RegisterRequest>({
-            initialValues: {
-                email: '',
-                firstName: '',
-                lastName: '',
-                password: '',
-                passwordConfirm: '',
-            },
-            validate: validateRegister,
-        });
+    const {
+        values,
+        errors,
+        setFieldError,
+        handleChange: formHandleChange,
+        handleBlur,
+        validateForm,
+    } = useForm<RegisterRequest>({
+        initialValues: {
+            email: '',
+            firstName: '',
+            lastName: '',
+            password: '',
+            passwordConfirm: '',
+        },
+        validate: validateRegister,
+    });
     const [generalError, setGeneralError] = useState<string>('');
     const passwordStrength = getPasswordStrength(
         values.password,
@@ -36,11 +42,16 @@ export default function useRegister() {
         values.email
     );
 
-    const clientErrors = useMemo(() => validateRegister(values), [values]);
-    const isFormValid = useMemo(
-        () => Object.keys(clientErrors).length === 0 && generalError.length === 0,
-        [clientErrors, generalError]
+    const handleChange = useCallback(
+        (e: ChangeEvent<HTMLInputElement>) => {
+            setGeneralError('');
+            formHandleChange(e);
+        },
+        [formHandleChange]
     );
+
+    const clientErrors = useMemo(() => validateRegister(values), [values]);
+    const isFormValid = useMemo(() => Object.keys(clientErrors).length === 0, [clientErrors]);
 
     const handleSubmit = async (e: React.SubmitEvent) => {
         e.preventDefault();

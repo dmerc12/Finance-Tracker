@@ -205,6 +205,27 @@ describe('useRegister', () => {
         expect(screen.getByRole('button')).toBeDisabled();
     });
 
+    it('clears the general error and re-enables submit when the user edits after 409', async () => {
+        mockPost.mockRejectedValue({
+            isAxiosError: true,
+            response: {
+                status: 409,
+                data: { message: 'Email already registered: test@example.com' },
+            },
+        });
+        const user = userEvent.setup();
+        renderWithProviders(<TestComponent />, store);
+        await fillValidForm(user);
+        await user.click(screen.getByRole('button'));
+        expect(
+            screen.getByText(/email already registered/i)
+        ).toBeInTheDocument();
+        expect(screen.getByRole('button')).toBeEnabled();
+        await user.type(screen.getByPlaceholderText('Email'), 'x');
+        expect(screen.queryByText(/email already registed/i)).not.toBeInTheDocument();
+        expect(screen.getByRole('button')).toBeEnabled();
+    });
+
     describe('live validation', () => {
         it('shows an email error after the email field is blurred', async () => {
             const user = userEvent.setup();

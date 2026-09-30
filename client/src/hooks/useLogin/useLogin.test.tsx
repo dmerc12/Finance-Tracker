@@ -156,4 +156,23 @@ describe('useLogin', () => {
         expect(submitEvent.preventDefault).toHaveBeenCalled();
         expect(mockNavigate).not.toHaveBeenCalled();
     });
+
+    it('clears the general error and re-enables submit when the user edits a field', async () => {
+        mockPost.mockRejectedValue({
+            isAxiosError: true,
+            response: {
+                status: 401,
+                data: { message: 'Invalid email or password' },
+            },
+        });
+        const user = userEvent.setup();
+        renderWithProviders(<TestComponent />, store);
+        await fillValidForm(user);
+        await user.click(screen.getByRole('button'));
+        expect(screen.getByText(/invalid email or password/i)).toBeInTheDocument();
+        expect(screen.getByRole('button')).toBeEnabled();
+        await user.type(screen.getByPlaceholderText('Password'), 'X');
+        expect(screen.queryByText(/invalid email or password/i)).not.toBeInTheDocument();
+        expect(screen.getByRole('button')).toBeEnabled();
+    });
 });

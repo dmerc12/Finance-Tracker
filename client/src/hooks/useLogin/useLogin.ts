@@ -1,7 +1,7 @@
+import React, { useState, useMemo, useCallback, type ChangeEvent } from 'react';
 import { type AppDispatch, type RootState, login } from '../../store';
 import { useDispatch, useSelector } from 'react-redux';
 import { validateLogin } from '../../validations';
-import React, { useState, useMemo } from 'react';
 import { type LoginRequest } from '../../types';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from '../useForm';
@@ -16,22 +16,33 @@ export default function useLogin() {
     const navigate = useNavigate();
     const { isLoading } = useSelector((state: RootState) => state.auth);
 
-    const { values, errors, setFieldError, handleChange, handleBlur, validateForm } =
-        useForm<LoginRequest>({
-            initialValues: {
-                email: '',
-                password: '',
-            },
-            validate: validateLogin,
-        });
+    const {
+        values,
+        errors,
+        setFieldError,
+        handleChange: formHandleChange,
+        handleBlur,
+        validateForm,
+    } = useForm<LoginRequest>({
+        initialValues: {
+            email: '',
+            password: '',
+        },
+        validate: validateLogin,
+    });
 
     const [generalError, setGeneralError] = useState<string>('');
 
-    const clientErrors = useMemo(() => validateLogin(values), [values]);
-    const isFormValid = useMemo(
-        () => Object.keys(clientErrors).length === 0 && generalError.length === 0,
-        [clientErrors, generalError]
+    const handleChange = useCallback(
+        (e: ChangeEvent<HTMLInputElement>) => {
+            setGeneralError('');
+            formHandleChange(e);
+        },
+        [formHandleChange]
     );
+
+    const clientErrors = useMemo(() => validateLogin(values), [values]);
+    const isFormValid = useMemo(() => Object.keys(clientErrors).length === 0, [clientErrors]);
 
     const handleSubmit = async (e: React.SubmitEvent) => {
         e.preventDefault();
