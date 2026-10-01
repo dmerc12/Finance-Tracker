@@ -25,8 +25,8 @@ import java.util.Map;
  * </ul>
  * <p>Audit logs are stored in the {@code audit_log} table and are used by the {@link JpaAuditEventRepository}
  * to persist Spring Security audit events.
- * <p>The {@code data} field uses PostgreSQL's JSONB type (via Hibernate's {@link JdbcTypeCode})
- * to store flexible, structured event details.
+ * <p>The {@code data} field is mapped via Hibernate's {@link JdbcTypeCode JSON type code},
+ * which resolves to {@code jsonb} on PostgreSQL and {@code json} on H2.
  *
  * @see JpaAuditEventRepository
  * @see AuditEvent
@@ -69,8 +69,10 @@ public class AuditLog {
 
     /**
      * Additional event-specific data stored as a JSON map.
-     * <p>Uses PostgreSQL's JSONB type for flexible, queryable JSON storage.
-     * This field can contain arbitrary key-value pairs such as:
+     * <p>The physical type is dialect-resolved by Hibernate: {@code jsonb}
+     * PostgreSQL, {@code json} on H2. This keeps the production schema and
+     * H2 test schema in agreement without a per-profile {@code columnDefinition}.
+     * <p>This field can contain arbitrary key-value pairs such as:
      * <ul>
      *     <li>Request URI</li>
      *     <li>HTTP method</li>
@@ -78,8 +80,8 @@ public class AuditLog {
      *     <li>Custom event properties</li>
      * </ul>
      */
+    @Column(updatable = false)
     @JdbcTypeCode(SqlTypes.JSON)
-    @Column(columnDefinition = "jsonb", updatable = false)
     private Map<String, Object> data;
 
     /**

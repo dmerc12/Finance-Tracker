@@ -173,7 +173,7 @@ public class UserTests {
             entityManager.persistAndFlush(user);
             String storedRole = (String) entityManager
                     .getEntityManager()
-                    .createNativeQuery("SELECT roles FROM user_roles WHERE user_id = :id")
+                    .createNativeQuery("SELECT role FROM user_roles WHERE user_id = :id")
                     .setParameter("id", user.getId())
                     .getSingleResult();
             assertEquals("ROLE_USER", storedRole);

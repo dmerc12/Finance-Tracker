@@ -17,6 +17,7 @@ import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
 
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -70,6 +71,7 @@ public class JpaAuditEventRepositoryTests {
             String ipAddress = "192.168.1.100";
             String userAgent = "Mozilla/5.0 (Test)";
             MockHttpServletRequest request = new MockHttpServletRequest();
+            request.setRequestURI("/api/auth");
             request.setRemoteAddr(ipAddress);
             request.addHeader("User-Agent", userAgent);
             ServletRequestAttributes attributes = new ServletRequestAttributes(request);
@@ -85,6 +87,64 @@ public class JpaAuditEventRepositoryTests {
             } finally {
                 RequestContextHolder.resetRequestAttributes();
             }
+        }
+
+        @Test
+        @DisplayName("Actuator request URI from request context is not persisted")
+        public void uriFromRequestContextIsNotPersisted() {
+            MockHttpServletRequest request = new MockHttpServletRequest();
+            request.setRequestURI("/actuator/health");
+            request.setRemoteAddr("192.168.1.100");
+            request.addHeader("User-Agent", "Mozilla/5.0 (Test)");
+            RequestContextHolder.setRequestAttributes(new ServletRequestAttributes(request));
+            try {
+                AuditEvent event = createTestAuditEvent();
+                repository.add(event);
+                auditLogRepository.flush();
+                List<AuditLog> logs = auditLogRepository.findAll();
+                assertEquals(0, logs.size());
+            } finally {
+                RequestContextHolder.resetRequestAttributes();
+            }
+        }
+
+        @Test
+        @DisplayName("Actuator request URI is not persisted")
+        public void actuatorRequestSURIIsNotPersisted() {
+            RequestContextHolder.resetRequestAttributes();
+            Map<String, Object> data = new HashMap<>();
+            data.put("requestURI", "/actuator/info");
+            AuditEvent event = new AuditEvent(Instant.now(), "test-user", "TEST_EVENT", data);
+            repository.add(event);
+            auditLogRepository.flush();
+            List<AuditLog> logs = auditLogRepository.findAll();
+            assertEquals(0, logs.size());
+        }
+
+        @Test
+        @DisplayName("Non-actuator request URI persists the event")
+        public void nonActuatorRequestURIPersistsTheEvent() {
+            RequestContextHolder.resetRequestAttributes();
+            Map<String, Object> data = new HashMap<>();
+            data.put("requestURI", "/api/account");
+            AuditEvent event = new AuditEvent(Instant.now(), "test-user", "TEST_EVENT", data);
+            repository.add(event);
+            auditLogRepository.flush();
+            List<AuditLog> logs = auditLogRepository.findAll();
+            assertEquals(1, logs.size());
+        }
+
+        @Test
+        @DisplayName("Non-String request short-circuits the instanceof check")
+        public void nonStringRequestURIShortCircuitsInstanceof() {
+            RequestContextHolder.resetRequestAttributes();
+            Map<String, Object> data = new HashMap<>();
+            data.put("requestURI", 12345);
+            AuditEvent event = new AuditEvent(Instant.now(), "test-user", "TEST_EVENT", data);
+            repository.add(event);
+            auditLogRepository.flush();
+            List<AuditLog> logs = auditLogRepository.findAll();
+            assertEquals(1, logs.size());
         }
 
         @Test
