@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, type Mocked } from 'vitest';
+import { mockPost, mockGet } from '../../test/mocks';
 import { authService } from '../authService';
 import api from '../api';
 import type {
@@ -12,8 +13,8 @@ import type {
 // Mock the entire api module
 vi.mock('../api', () => ({
     default: {
-        post: vi.fn(),
-        get: vi.fn(),
+        post: mockPost,
+        get: mockGet,
     },
 }));
 
@@ -164,6 +165,66 @@ describe('authService', () => {
                     }),
                 })
             );
+        });
+    });
+
+    describe('getCurrentUser', () => {
+        const mockUser: UserDTO = {
+            id: 1,
+            email: 'test@example.com',
+            firstName: 'John',
+            lastName: 'Doe',
+            roles: ['ROLE_USER'],
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString(),
+        };
+
+        const mockSuccessResponse: ResponseDTO<UserDTO> = {
+            message: 'Authenticated user',
+            data: mockUser,
+            status: 200,
+            timestamp: new Date().toISOString(),
+        };
+
+        it('calls api.get with /auth/me and no payload', async () => {
+            mockedAPI.get.mockResolvedValue({ data: mockSuccessResponse });
+            const result = await authService.getCurrentUser();
+            expect(mockedAPI.get).toHaveBeenCalledTimes(1);
+            expect(mockedAPI.get).toHaveBeenCalledWith('/auth/me');
+            expect(result).toEqual({ data: mockSuccessResponse });
+        });
+
+        it('propagates 401 when the session is unauthenticated', async () => {
+            const errorResponse = {
+                response: {
+                    status: 401,
+                    data: {
+                        message: 'Authentication required',
+                        timestamp: new Date().toISOString(),
+                        status: 401,
+                        error: 'Unauthorized',
+                    },
+                },
+            };
+            mockedAPI.get.mockRejectedValue(errorResponse);
+            await expect(authService.getCurrentUser()).rejects.toEqual(
+                expect.objectContaining({
+                    response: expect.objectContaining({
+                        status: 401,
+                        data: expect.objectContaining({
+                            message: 'Authentication required',
+                            error: 'Unauthorized',
+                        }),
+                    }),
+                })
+            );
+        });
+
+        it('propagates network errors', async () => {
+            const error = new Error('Network error');
+            mockedAPI.get.mockRejectedValue(error);
+            await expect(authService.getCurrentUser()).rejects.toThrow('Network error');
+            expect(mockedAPI.get).toHaveBeenCalledWith('/auth/me');
         });
     });
 });

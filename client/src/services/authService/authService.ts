@@ -42,12 +42,12 @@ export const authService = {
     },
     /**
      * Fetch the current authenticated user's details.
-     * <p>The cookie is automatically sent, so no token is required in the request.
-     * @returns Promise with user data
+     * <p>The JWT cookie is sent automatically by the browser - no token
+     * parameter is required. Returns the standard {@code ResponseDTO<UserDTO>}
+     * envelope; callers typically consume {@code response.data.data}.
+     * @returns Promise with the response
      */
     getCurrentUser: () => {
-        // TODO: implement get current user
-        console.log('getCurrentUser called');
-        return api.get('/auth/me');
+        return api.get<ResponseDTO<UserDTO>>('/auth/me');
     },
 };
