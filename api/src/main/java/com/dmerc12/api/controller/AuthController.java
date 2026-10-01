@@ -3,6 +3,8 @@ package com.dmerc12.api.controller;
 import com.dmerc12.api.dto.*;
 import com.dmerc12.api.exception.InvalidTokenException;
 import com.dmerc12.api.exception.ResourceNotFoundException;
+import com.dmerc12.api.security.JwtAuthenticationEntryPoint;
+import com.dmerc12.api.security.JwtAuthenticationFilter;
 import com.dmerc12.api.security.SecurityService;
 import com.dmerc12.api.service.AuthService;
 import com.dmerc12.api.service.UserService;
@@ -26,14 +28,22 @@ import java.util.Arrays;
  * REST controller for authentication and user account management endpoints.
  * <p>Provides endpoints for:
  * <ul>
+ *     <li><b>Login:</b> {@code POST /api/auth/login}</li>
+ *     <li><b>Token refresh:</b> {@code POST /api/auth/refresh}</li>
  *     <li><b>Registration:</b> {@code POST /api/auth/register}</li>
+ *     <li><b>Current user profile:</b> {@code GET /api/auth/me}</li>
  *     <li><b>Password change:</b> {@code PUT /api/auth/change-password}</li>
  *     <li><b>Admin password reset:</b> {@code GET /api/auth/reset-password}</li>
  * </ul>
  * All endpoints return responses wrapped in a consistent {@link ResponseDTO} structure.
  * <p><b>Security:</b>
  * <ul>
- *     <li>Registration is public.</li>
+ *     <li>Registration and login are public.</li>
+ *     <li>
+ *         Token refresh accepts a refresh token via the {@code refresh_token} cookie
+ *         or the {@code Authorization: Bearer} header.
+ *     </li>
+ *     <li>Current-user profile requires authentication.</li>
  *     <li>Password change requires authentication (owner or admin).</li>
  *     <li>Password reset is restricted to admins.</li>
  * </ul>
@@ -52,6 +62,29 @@ public class AuthController {
     private final AuthService authService;
     private final UserService userService;
     private final SecurityService securityService;
+
+    /**
+     * Returns the currently authenticated user's profile.
+     * <p>
+     *     The user id is resolved by {@link SecurityService#getCurrentUserId(Authentication)}
+     *     from {@code SecurityContext} populated by the JWT filter. Anonymous requests
+     *     never reach this method - they are short-circuited by
+     *     {@link JwtAuthenticationEntryPoint} with a 401 response.
+     *
+     * @param authentication the current authentication context (injected by Spring)
+     * @return {@code 200 OK} with a success response containing the caller's {@link UserDTO}
+     * @throws AccessDeniedException if the authenticated principal cannot be resolved to a persisted user
+     * @throws ResourceNotFoundException if the resolved user id no longer exists
+     * @see SecurityService#getCurrentUserId(Authentication)
+     * @see UserService#getUser(Long)
+     */
+    @GetMapping("/me")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ResponseDTO<UserDTO>> me(Authentication authentication) {
+        Long userId = securityService.getCurrentUserId(authentication);
+        UserDTO user = userService.getUser(userId);
+        return ResponseEntity.ok(ResponseDTO.success("Authenticated user", user));
+    }
 
     /**
      * Registers a new user.

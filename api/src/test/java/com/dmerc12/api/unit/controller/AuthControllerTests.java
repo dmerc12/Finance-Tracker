@@ -59,6 +59,43 @@ public class AuthControllerTests {
     private static final String TEST_EMAIL = "test@example.com";
 
     @Nested
+    @DisplayName("GET /api/auth/me")
+    class MeTests {
+
+        @Test
+        @DisplayName("Returns 200 OK with the authenticated user's profile")
+        public void success() {
+            UserDTO userDTO = UserDTO.builder()
+                    .id(1L)
+                    .email(TEST_EMAIL)
+                    .firstName("John")
+                    .lastName("Doe")
+                    .roles(Set.of("ROLE_USER"))
+                    .build();
+            when(securityService.getCurrentUserId(authentication)).thenReturn(1L);
+            when(userService.getUser(1L)).thenReturn(userDTO);
+            ResponseEntity<ResponseDTO<UserDTO>> response = authController.me(authentication);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).isNotNull();
+            assertThat(response.getBody().getMessage()).isEqualTo("Authenticated user");
+            assertThat(response.getBody().getData()).isEqualTo(userDTO);
+            verify(securityService).getCurrentUserId(authentication);
+            verify(userService).getUser(1L);
+        }
+
+        @Test
+        @DisplayName("Propagates AccessDeniedException when the principal cannot be resolved")
+        public void unauthenticated() {
+            when(securityService.getCurrentUserId(authentication))
+                    .thenThrow(new AccessDeniedException("Not authenticated"));
+            assertThatThrownBy(() -> authController.me(authentication))
+                    .isInstanceOf(AccessDeniedException.class)
+                    .hasMessage("Not authenticated");
+            verify(userService, never()).getUser(anyLong());
+        }
+    }
+
+    @Nested
     @DisplayName("POST /api/auth/register")
     class RegisterTests {
 

@@ -6,6 +6,7 @@ import com.dmerc12.api.dto.PasswordChangeRequest;
 import com.dmerc12.api.dto.RegisterRequest;
 import com.dmerc12.api.entity.Role;
 import com.dmerc12.api.entity.User;
+import com.dmerc12.api.dto.UserDTO;
 import com.dmerc12.api.repository.UserRepository;
 import com.dmerc12.api.security.CustomUserDetailsService;
 import com.dmerc12.api.security.JwtService;
@@ -41,12 +42,14 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * <p><b>Coverage:</b>
  * <ul>
  *     <li>User registration - success and validation failures</li>
+ *     <li>Login - success, incorrect password, email nonexistent, blank email/password</li>
+ *     <li>Token refresh - success via cookie/header, missing/invalid refresh token, other token (access, non-bearer)</li>
+ *     <li>Current user profile - success, caller isolation, unauthenticated</li>
  *     <li>Password change - success, ownership check, and validation errors</li>
  *     <li>Admin password reset - success and authorization</li>
- *     <li>Token refresh - success via cookie/header, missing/invalid refresh token, other token (access, non-bearer)</li>
- *     <li>Login - success, incorrect password, email nonexistent, blank email/password</li>
  * </ul>
  *
+ * @see UserDTO
  * @see AuthController
  * @see LoginRequest
  * @see RegisterRequest
@@ -113,6 +116,47 @@ public class AuthTests  extends BaseIntegrationTest {
         UserDetails userDetails = userDetailsService.loadUserByUsername(user.getEmail());
         Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
         return jwtService.generateAccessToken(auth);
+    }
+
+    @Nested
+    @DisplayName("GET /api/auth/me")
+    class MeTests {
+
+        @Test
+        @WithMockUser(username = "owner@example.com", roles = "USER")
+        @DisplayName("Returns 200 OK with the authenticated user's profile")
+        public void success() throws Exception {
+            mockMvc.perform(get(BASE_URL + "/me"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").value("Authenticated user"))
+                    .andExpect(jsonPath("$.timestamp").exists())
+                    .andExpect(jsonPath("$.data.id").value(user.getId()))
+                    .andExpect(jsonPath("$.data.email").value("owner@example.com"))
+                    .andExpect(jsonPath("$.data.firstName").value("Bill"))
+                    .andExpect(jsonPath("$.data.lastName").value("Johnson"))
+                    .andExpect(jsonPath("$.data.roles").isArray())
+                    .andExpect(jsonPath("$.data.roles[0]").value("ROLE_USER"))
+                    .andExpect(jsonPath("$.data.createdAt").exists())
+                    .andExpect(jsonPath("$.data.updatedAt").exists());
+        }
+
+        @Test
+        @WithMockUser(username = "other@example.com", roles = "USER")
+        @DisplayName("Returns the calling user's own profile, not another user's")
+        public void returnsCallingUserOnly() throws Exception {
+            mockMvc.perform(get(BASE_URL + "/me"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.email").value("other@example.com"))
+                    .andExpect(jsonPath("$.data.firstName").value("Jill"))
+                    .andExpect(jsonPath("$.data.lastName").value("Smith"));
+        }
+
+        @Test
+        @DisplayName("Returns 401 Unauthorized when the request is anonymous")
+        public void unauthenticated() throws Exception {
+            mockMvc.perform(get(BASE_URL + "/me"))
+                    .andExpect(status().isUnauthorized());
+        }
     }
 
     @Nested
