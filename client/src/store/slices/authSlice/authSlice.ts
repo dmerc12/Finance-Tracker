@@ -1,15 +1,7 @@
-import type { RegisterRequest, LoginRequest } from '../../../types';
+import type { RegisterRequest, LoginRequest, ErrorState } from '../../../types';
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { authService } from '../../../services';
 import { getErrorData } from '../../../utils';
-
-/**
- * Error state shape.
- */
-interface ErrorState {
-    message: string | null;
-    fieldErrors: Map<string, string[]> | null;
-}
 
 /**
  * Authentication state shape.

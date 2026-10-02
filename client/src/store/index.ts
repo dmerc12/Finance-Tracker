@@ -1,8 +1,8 @@
-import { configureStore } from '@reduxjs/toolkit';
-import authReducer from './slices/authSlice/authSlice.ts';
-import userReducer from './slices/userSlice';
-import accountsReducer from './slices/accountsSlice';
 import transactionsReducer from './slices/transactionsSlice';
+import authReducer from './slices/authSlice/authSlice';
+import userReducer from './slices/userSlice/userSlice';
+import accountsReducer from './slices/accountsSlice';
+import { configureStore } from '@reduxjs/toolkit';
 import uiReducer from './slices/uiSlice';
 
 export const store = configureStore({
