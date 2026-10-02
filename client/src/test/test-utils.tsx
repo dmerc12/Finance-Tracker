@@ -1,7 +1,7 @@
+import { mockPost, mockGet, mockNavigate, mockIsAxiosError } from './mocks';
 import { render, type RenderResult } from '@testing-library/react';
 import authReducer from '../store/slices/authSlice/authSlice';
 import { configureStore, type Store } from '@reduxjs/toolkit';
-import { mockPost, mockGet, mockNavigate } from './mocks';
 import { BrowserRouter } from 'react-router-dom';
 import React, { type ReactNode } from 'react';
 import type { SubmitEvent } from 'react';
@@ -12,6 +12,7 @@ beforeEach(() => {
     mockPost.mockReset();
     mockGet.mockReset();
     mockNavigate.mockReset();
+    mockIsAxiosError.mockReset();
 });
 
 export const createTestStore = (): Store => configureStore({ reducer: { auth: authReducer } });

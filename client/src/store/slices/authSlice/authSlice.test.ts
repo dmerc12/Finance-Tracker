@@ -1,6 +1,6 @@
 import authReducer, { register, login, clearAuthError, resetAuthState } from './authSlice';
+import { mockIsAxiosError, createAxiosResponse } from '../../../test/mocks';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { type AxiosResponse, isAxiosError } from 'axios';
 import { configureStore } from '@reduxjs/toolkit';
 import { authService } from '../../../services';
 import type {
@@ -20,24 +20,14 @@ vi.mock('../../../services', () => ({
 
 vi.mock('axios', async () => {
     const actual = await vi.importActual('axios');
+    const { mockIsAxiosError } = await import('../../../test/mocks');
     return {
         ...actual,
-        isAxiosError: vi.fn(),
+        isAxiosError: mockIsAxiosError,
     };
 });
 
 const mockedAuthService = vi.mocked(authService);
-const mockedIsAxiosError = vi.mocked(isAxiosError);
-
-function createAxiosResponse<T>(data: T): AxiosResponse<T> {
-    return {
-        data,
-        status: 200,
-        statusText: 'OK',
-        headers: {},
-        config: {},
-    } as AxiosResponse<T>;
-}
 
 describe('authSlice', () => {
     describe('login', () => {
@@ -80,7 +70,7 @@ describe('authSlice', () => {
                     data: { message: 'Invalid email or password' },
                 },
             };
-            mockedIsAxiosError.mockReturnValue(true);
+            mockIsAxiosError.mockReturnValue(true);
             mockedAuthService.login.mockRejectedValue(error);
             const store = configureStore({ reducer: { auth: authReducer } });
             const action = await store.dispatch(login(mockData));
@@ -105,7 +95,7 @@ describe('authSlice', () => {
                     },
                 },
             };
-            mockedIsAxiosError.mockReturnValue(true);
+            mockIsAxiosError.mockReturnValue(true);
             mockedAuthService.login.mockRejectedValue(error);
             const store = configureStore({ reducer: { auth: authReducer } });
             const action = await store.dispatch(login(mockData));
@@ -120,7 +110,7 @@ describe('authSlice', () => {
         });
 
         it('should handle login.rejected with generic error', async () => {
-            mockedIsAxiosError.mockReturnValue(false);
+            mockIsAxiosError.mockReturnValue(false);
             mockedAuthService.login.mockRejectedValue(new Error('Network error'));
             const store = configureStore({ reducer: { auth: authReducer } });
             const action = await store.dispatch(login(mockData));
@@ -182,7 +172,7 @@ describe('authSlice', () => {
                     },
                 },
             };
-            mockedIsAxiosError.mockImplementation((err) => err === error);
+            mockIsAxiosError.mockImplementation((err) => err === error);
             mockedAuthService.register.mockRejectedValue(error);
             const store = configureStore({ reducer: { auth: authReducer } });
             const action = await store.dispatch(register(mockData));
@@ -207,7 +197,7 @@ describe('authSlice', () => {
                     },
                 },
             };
-            mockedIsAxiosError.mockImplementation((err) => err === error);
+            mockIsAxiosError.mockImplementation((err) => err === error);
             mockedAuthService.register.mockRejectedValue(error);
             const store = configureStore({ reducer: { auth: authReducer } });
             const action = await store.dispatch(register(mockData));
@@ -224,7 +214,7 @@ describe('authSlice', () => {
 
         it('should handle register.rejected with generic error (network error)', async () => {
             const error = new Error('Network error');
-            mockedIsAxiosError.mockReturnValue(false);
+            mockIsAxiosError.mockReturnValue(false);
             mockedAuthService.register.mockRejectedValue(error);
             const store = configureStore({ reducer: { auth: authReducer } });
             const action = await store.dispatch(register(mockData));
