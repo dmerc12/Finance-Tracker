@@ -1,8 +1,10 @@
+import { mockPost, mockGet, mockNavigate } from '../../test/mocks';
 import { screen, renderHook, act } from '@testing-library/react';
-import { mockPost, mockNavigate } from '../../test/mocks';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 import type { ChangeEvent } from 'react';
-import { beforeEach } from 'vitest';
+import { beforeEach, vi } from 'vitest';
+import { Provider } from 'react-redux';
 import useLogin from './useLogin';
 import {
     createTestStore,
@@ -69,7 +71,23 @@ describe('useLogin', () => {
     let store: ReturnType<typeof createTestStore>;
 
     beforeEach(() => {
+        vi.clearAllMocks();
         store = createTestStore();
+        mockGet.mockResolvedValue({
+            data: {
+                message: 'Authenticated user',
+                data: {
+                    id: 1,
+                    email: 'test@example.com',
+                    firstName: 'John',
+                    lastName: 'Doe',
+                    roles: ['ROLE_USER'],
+                    createdAt: new Date().toISOString(),
+                    updatedAt: new Date().toISOString(),
+                },
+                timestamp: new Date().toISOString(),
+            },
+        });
     });
 
     it('disables submit button when form is invalid', async () => {
@@ -79,7 +97,7 @@ describe('useLogin', () => {
         expect(screen.getByRole('button')).toBeDisabled();
     });
 
-    it('navigates to dashboard on successful login', async () => {
+    it('navigates to / on successful login with no state.from', async () => {
         mockPost.mockResolvedValue({
             data: {
                 message: 'Login successful',
@@ -90,7 +108,46 @@ describe('useLogin', () => {
         renderWithProviders(<TestComponent />, store);
         await fillValidForm(user);
         await user.click(screen.getByRole('button'));
-        expect(mockNavigate).toHaveBeenCalledWith('/');
+        expect(mockNavigate).toHaveBeenCalledWith('/', { replace: true });
+    });
+
+    it('navigates to location.state.from on successful login', async () => {
+        mockPost.mockResolvedValue({
+            data: {
+                message: 'Login successful',
+                data: { email: 'test@example.com' },
+            },
+        });
+        const { result } = renderHook(() => useLogin(), {
+            wrapper: ({ children }) => (
+                <Provider store={store}>
+                    <MemoryRouter
+                        initialEntries={[{ pathname: '/login', state: { from: '/accounts' } }]}
+                    >
+                        {children}
+                    </MemoryRouter>
+                </Provider>
+            ),
+        });
+        fillValidFormFields(result.current);
+        await submitForm(result.current);
+        expect(mockNavigate).toHaveBeenCalledWith('/accounts', { replace: true });
+    });
+
+    it('dispatches fetchCurrentUser after a successful login', async () => {
+        mockPost.mockResolvedValue({
+            data: {
+                message: 'Login successful',
+                data: { email: 'test@example.com' },
+            },
+        });
+        const dispatchSpy = vi.spyOn(store, 'dispatch');
+        const { result } = renderHook(() => useLogin(), {
+            wrapper: createHookWrapper(store),
+        });
+        fillValidFormFields(result.current);
+        await submitForm(result.current);
+        expect(dispatchSpy).toHaveBeenCalledTimes(2);
     });
 
     it('shows a field error after the email field is blurred', async () => {
