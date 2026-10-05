@@ -187,72 +187,83 @@ public class AuthControllerTests {
     class RefreshTokenTests {
 
         @Test
-        @DisplayName("Returns 200 OK with new access token when refresh token is valid")
+        @DisplayName("Returns 200 OK with new tokens when refresh token is valid")
         public void success() {
             String refreshToken = "valid.refresh.token";
-            String newAccessToken = "new.access.token";
+            RefreshedTokensDTO rotated = RefreshedTokensDTO.builder()
+                    .accessToken("new.access.token")
+                    .refreshToken("new.refresh.token")
+                    .build();
+            HttpServletResponse mockResponse = mock(HttpServletResponse.class);
             when(request.getHeader("Authorization")).thenReturn("Bearer " + refreshToken);
-            when(authService.refreshAccessToken(refreshToken)).thenReturn(newAccessToken);
-            ResponseEntity<ResponseDTO<String>> response = authController.refreshToken(request);
+            when(authService.refreshTokens(refreshToken, mockResponse)).thenReturn(rotated);
+            ResponseEntity<ResponseDTO<RefreshedTokensDTO>> response = authController.refreshTokens(request, mockResponse);
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.getBody()).isNotNull();
-            assertThat(response.getBody().getMessage()).isEqualTo("Token refreshed");
-            assertThat(response.getBody().getData()).isEqualTo(newAccessToken);
-            verify(authService).refreshAccessToken(refreshToken);
+            assertThat(response.getBody().getMessage()).isEqualTo("Tokens refreshed");
+            assertThat(response.getBody().getData()).isEqualTo(rotated);
+            verify(authService).refreshTokens(refreshToken, mockResponse);
         }
 
         @Test
         @DisplayName("Returns 401 Unauthorized when refresh token is missing")
         public void missingToken() {
+            HttpServletResponse mockResponse = mock(HttpServletResponse.class);
             when(request.getHeader("Authorization")).thenReturn(null);
             when(request.getCookies()).thenReturn(null);
-            when(authService.refreshAccessToken(null))
+            when(authService.refreshTokens(null, mockResponse))
                     .thenThrow(new InvalidTokenException("Invalid or expired refresh token"));
-            assertThatThrownBy(() -> authController.refreshToken(request))
+            assertThatThrownBy(() -> authController.refreshTokens(request, mockResponse))
                     .isInstanceOf(InvalidTokenException.class)
                     .hasMessage("Invalid or expired refresh token");
-            verify(authService).refreshAccessToken(null);
+            verify(authService).refreshTokens(null, mockResponse);
         }
 
         @Test
         @DisplayName("Returns 401 Unauthorized when refresh token is invalid")
         public void invalidToken() {
             String invalidToken = "invalid.token";
+            HttpServletResponse mockResponse = mock(HttpServletResponse.class);
             when(request.getHeader("Authorization")).thenReturn("Bearer " + invalidToken);
-            when(authService.refreshAccessToken(invalidToken))
+            when(authService.refreshTokens(invalidToken, mockResponse))
                     .thenThrow(new InvalidTokenException("Invalid or expired refresh token"));
-            assertThatThrownBy(() -> authController.refreshToken(request))
+            assertThatThrownBy(() -> authController.refreshTokens(request, mockResponse))
                     .isInstanceOf(InvalidTokenException.class)
                     .hasMessage("Invalid or expired refresh token");
-            verify(authService).refreshAccessToken(invalidToken);
+            verify(authService).refreshTokens(invalidToken, mockResponse);
         }
 
         @Test
         @DisplayName("Returns 401 Unauthorized when authorization header is not bearer")
         public void authHeaderNotBearer() {
+            HttpServletResponse mockResponse = mock(HttpServletResponse.class);
             when(request.getHeader("Authorization")).thenReturn("Other ");
-            when(authService.refreshAccessToken(null))
+            when(authService.refreshTokens(null, mockResponse))
                     .thenThrow(new InvalidTokenException("Invalid or expired refresh token"));
-            assertThatThrownBy(() -> authController.refreshToken(request))
+            assertThatThrownBy(() -> authController.refreshTokens(request, mockResponse))
                     .isInstanceOf(InvalidTokenException.class)
                     .hasMessage("Invalid or expired refresh token");
-            verify(authService).refreshAccessToken(null);
+            verify(authService).refreshTokens(null, mockResponse);
         }
 
         @Test
         @DisplayName("Extracts refresh token from cookie when Authorization header is absent")
         public void successFromCookie() {
             String refreshToken = "cookie.refresh.token";
-            String newAccessToken = "new.access.token";
+            RefreshedTokensDTO rotated = RefreshedTokensDTO.builder()
+                    .accessToken("new.access.token")
+                    .refreshToken("new.refresh.token")
+                    .build();
+            HttpServletResponse mockResponse = mock(HttpServletResponse.class);
             when(request.getHeader("Authorization")).thenReturn(null);
             Cookie cookie = new Cookie("refresh_token", refreshToken);
             when(request.getCookies()).thenReturn(new Cookie[]{cookie});
-            when(authService.refreshAccessToken(refreshToken)).thenReturn(newAccessToken);
-            ResponseEntity<ResponseDTO<String>> response = authController.refreshToken(request);
+            when(authService.refreshTokens(refreshToken, mockResponse)).thenReturn(rotated);
+            ResponseEntity<ResponseDTO<RefreshedTokensDTO>> response = authController.refreshTokens(request, mockResponse);
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.getBody()).isNotNull();
-            assertThat(response.getBody().getData()).isEqualTo(newAccessToken);
-            verify(authService).refreshAccessToken(refreshToken);
+            assertThat(response.getBody().getData()).isEqualTo(rotated);
+            verify(authService).refreshTokens(refreshToken, mockResponse);
         }
     }
 

@@ -2,6 +2,7 @@ package com.dmerc12.api.unit.service;
 
 import com.dmerc12.api.dto.LoginRequest;
 import com.dmerc12.api.dto.LoginResponse;
+import com.dmerc12.api.dto.RefreshedTokensDTO;
 import com.dmerc12.api.dto.UserDTO;
 import com.dmerc12.api.entity.User;
 import com.dmerc12.api.entity.Role;
@@ -35,7 +36,7 @@ import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for {@link AuthServiceImpl}.
- * <p>Verifies refresh token logic - success, null token, invalid token, wrong token type.
+ * <p>Verifies refresh-token rotation and login flows including error paths.
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Auth Service Unit Tests")
@@ -64,11 +65,12 @@ public class AuthServiceTests {
     class RefreshTokenTests {
 
         @Test
-        @DisplayName("Success")
+        @DisplayName("Success returns both rotated tokens and sets both cookies")
         public void success() {
             String refreshToken = "valid.refresh.token";
             String username = "test";
             String newAccessToken = "new.access.token";
+            String newRefreshToken = "new.refresh.token";
             when(jwtService.validateToken(refreshToken)).thenReturn(true);
             when(jwtService.extractTokenType(refreshToken)).thenReturn("refresh");
             when(jwtService.extractUsername(refreshToken)).thenReturn(username);
@@ -76,19 +78,26 @@ public class AuthServiceTests {
                     .withUsername(username).password("pass").roles("USER").build();
             when(userDetailsService.loadUserByUsername(username)).thenReturn(userDetails);
             when(jwtService.generateAccessToken(any(Authentication.class))).thenReturn(newAccessToken);
-            String result = authService.refreshAccessToken(refreshToken);
-            assertThat(result).isEqualTo(newAccessToken);
+            when(jwtService.generateRefreshToken(any(Authentication.class))).thenReturn(newRefreshToken);
+            HttpServletResponse response = mock(HttpServletResponse.class);
+            RefreshedTokensDTO result = authService.refreshTokens(refreshToken, response);
+            assertThat(result.getAccessToken()).isEqualTo(newAccessToken);
+            assertThat(result.getRefreshToken()).isEqualTo(newRefreshToken);
             verify(jwtService).validateToken(refreshToken);
             verify(jwtService).extractTokenType(refreshToken);
             verify(jwtService).extractUsername(refreshToken);
             verify(userDetailsService).loadUserByUsername(username);
             verify(jwtService).generateAccessToken(any(Authentication.class));
+            verify(jwtService).generateRefreshToken(any(Authentication.class));
+            verify(jwtService).setAccessTokenCookie(response, newAccessToken);
+            verify(jwtService).setRefreshTokenCookie(response, newRefreshToken);
         }
 
         @Test
         @DisplayName("Refresh token fails when token is null")
         public void refreshTokenNull() {
-            assertThatThrownBy(() -> authService.refreshAccessToken(null))
+            HttpServletResponse response = mock(HttpServletResponse.class);
+            assertThatThrownBy(() -> authService.refreshTokens(null, response))
                     .isInstanceOf(InvalidTokenException.class)
                     .hasMessageContaining("Invalid or expired refresh token");
             verifyNoInteractions(jwtService, userDetailsService);
@@ -98,7 +107,8 @@ public class AuthServiceTests {
         @DisplayName("Refresh token fails when token is invalid")
         public void refreshTokenInvalid() {
             String refreshToken = "invalid.token";
-            assertThatThrownBy(() -> authService.refreshAccessToken(refreshToken))
+            HttpServletResponse response = mock(HttpServletResponse.class);
+            assertThatThrownBy(() -> authService.refreshTokens(refreshToken, response))
                     .isInstanceOf(InvalidTokenException.class)
                     .hasMessageContaining("Invalid or expired refresh token");
             verify(jwtService).validateToken(refreshToken);
@@ -109,9 +119,10 @@ public class AuthServiceTests {
         @DisplayName("Refresh token fails when token type is not 'refresh'")
         public void refreshTokenWrongType() {
             String refreshToken = "valid.token";
+            HttpServletResponse response = mock(HttpServletResponse.class);
             when(jwtService.validateToken(refreshToken)).thenReturn(true);
             when(jwtService.extractTokenType(refreshToken)).thenReturn("access");
-            assertThatThrownBy(() -> authService.refreshAccessToken(refreshToken))
+            assertThatThrownBy(() -> authService.refreshTokens(refreshToken, response))
                     .isInstanceOf(InvalidTokenException.class)
                     .hasMessageContaining("Invalid token type");
             verify(jwtService).validateToken(refreshToken);
@@ -125,7 +136,7 @@ public class AuthServiceTests {
     class LoginTests {
 
         @Test
-        @DisplayName("Login success returns token and user info")
+        @DisplayName("Login success returns tokens and user info")
         public void loginSuccess() {
             LoginRequest request = new LoginRequest("test@example.com", "Password123!");
             Authentication auth = mock(Authentication.class);

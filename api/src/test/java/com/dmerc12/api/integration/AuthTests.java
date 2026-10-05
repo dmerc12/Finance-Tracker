@@ -1028,19 +1028,21 @@ public class AuthTests  extends BaseIntegrationTest {
 
     @Nested
     @DisplayName("POST /api/auth/refresh")
-    class RefreshTokenTests {
+    class RefreshTokensTests {
 
         @Test
-        @DisplayName("Returns 200 OK with new access token when refresh token is valid (via header)")
+        @DisplayName("Returns 200 OK with rotated tokens when refresh token is valid (via header)")
         public void successFromHeader() throws Exception {
             String refreshToken = generateRefreshToken(user);
             mockMvc.perform(post(BASE_URL + "/refresh")
                             .header("Authorization", "Bearer " + refreshToken)
                             .with(csrf()))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.message").value("Token refreshed"))
-                    .andExpect(jsonPath("$.data").isString())
-                    .andExpect(jsonPath("$.data").isNotEmpty());
+                    .andExpect(jsonPath("$.message").value("Tokens refreshed"))
+                    .andExpect(jsonPath("$.data.accessToken").isString())
+                    .andExpect(jsonPath("$.data.accessToken").isNotEmpty())
+                    .andExpect(jsonPath("$.data.refreshToken").isString())
+                    .andExpect(jsonPath("$.data.refreshToken").isNotEmpty());
         }
 
         @Test
@@ -1053,9 +1055,27 @@ public class AuthTests  extends BaseIntegrationTest {
                             .cookie(cookie)
                             .with(csrf()))
                     .andExpect(status().isOk())
-                    .andExpect(jsonPath("$.message").value("Token refreshed"))
-                    .andExpect(jsonPath("$.data").isString())
-                    .andExpect(jsonPath("$.data").isNotEmpty());
+                    .andExpect(jsonPath("$.message").value("Tokens refreshed"))
+                    .andExpect(jsonPath("$.data.accessToken").isString())
+                    .andExpect(jsonPath("$.data.accessToken").isNotEmpty())
+                    .andExpect(jsonPath("$.data.refreshToken").isString())
+                    .andExpect(jsonPath("$.data.refreshToken").isNotEmpty());
+        }
+
+        @Test
+        @DisplayName("Sets both rotated cookies on successful refresh")
+        public void setsRotatedCookies() throws Exception {
+            String refreshToken = generateRefreshToken(user);
+            Cookie cookie = new Cookie("refresh_token", refreshToken);
+            cookie.setPath("/");
+            mockMvc.perform(post(BASE_URL + "/refresh")
+                        .cookie(cookie)
+                        .with(csrf()))
+                    .andExpect(status().isOk())
+                    .andExpect(cookie().exists("access_token"))
+                    .andExpect(cookie().httpOnly("access_token", true))
+                    .andExpect(cookie().exists("refresh_token"))
+                    .andExpect(cookie().httpOnly("refresh_token", true));
         }
 
         @Test

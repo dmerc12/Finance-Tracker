@@ -2,6 +2,7 @@ package com.dmerc12.api.service.impl;
 
 import com.dmerc12.api.dto.LoginRequest;
 import com.dmerc12.api.dto.LoginResponse;
+import com.dmerc12.api.dto.RefreshedTokensDTO;
 import com.dmerc12.api.entity.User;
 import com.dmerc12.api.exception.InvalidTokenException;
 import com.dmerc12.api.mapper.UserMapper;
@@ -38,21 +39,32 @@ public class AuthServiceImpl implements AuthService {
      * {@inheritDoc}
      */
     @Override
-    public String refreshAccessToken(String refreshToken) {
+    public RefreshedTokensDTO refreshTokens(String refreshToken, HttpServletResponse response) {
+        // Validate the token is present and not expired/tampered
         if (refreshToken == null || !jwtService.validateToken(refreshToken)) {
             log.warn("Invalid or expired refresh token");
             throw new InvalidTokenException("Invalid or expired refresh token");
         }
+        // Reject access tokens masquerading as refresh tokens
         if (!"refresh".equals(jwtService.extractTokenType(refreshToken))) {
             log.warn("Invalid token type for refresh: {}", jwtService.extractTokenType(refreshToken));
             throw new InvalidTokenException("Invalid token type");
         }
+        // Resolve the principal and issue a fresh pair of tokens
         String username = jwtService.extractUsername(refreshToken);
         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
         Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
         String newAccessToken = jwtService.generateAccessToken(auth);
-        log.info("Access token refreshed for user: {}", username);
-        return newAccessToken;
+        String newRefreshToken = jwtService.generateRefreshToken(auth);
+        // Write rotated tokens back to the browser as an HTTP-only cookies
+        jwtService.setAccessTokenCookie(response, newAccessToken);
+        jwtService.setRefreshTokenCookie(response, newRefreshToken);
+        RefreshedTokensDTO tokens = RefreshedTokensDTO.builder()
+                .accessToken(newAccessToken)
+                .refreshToken(newRefreshToken)
+                .build();
+        log.info("Access and refresh tokens refreshed for user: {}", username);
+        return tokens;
     }
 
     /**

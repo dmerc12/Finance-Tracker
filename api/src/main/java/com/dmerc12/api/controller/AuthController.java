@@ -4,7 +4,6 @@ import com.dmerc12.api.dto.*;
 import com.dmerc12.api.exception.InvalidTokenException;
 import com.dmerc12.api.exception.ResourceNotFoundException;
 import com.dmerc12.api.security.JwtAuthenticationEntryPoint;
-import com.dmerc12.api.security.JwtAuthenticationFilter;
 import com.dmerc12.api.security.SecurityService;
 import com.dmerc12.api.service.AuthService;
 import com.dmerc12.api.service.UserService;
@@ -149,22 +148,27 @@ public class AuthController {
     }
 
     /**
-     * Refreshes an expired access token using a valid refresh token.
+     * Refreshes an expired access token using a valid refresh token, and rotates the refresh token.
      * <p>The refresh token is expected in the {@code refresh_token} cookie or in the
      * {@code Authorization} header as a Bearer token.
+     * On success, the new tokens are written to HTTP-only cookies so the browser picks it up
+     * automatically on the next request
      *
      * @param request the HTTP request
-     * @return a new access token wrapped in a {@link ResponseDTO}
+     * @param response the HTTP response on which the rotated token cookies are set
+     * @return the new tokens wrapped in a {@link ResponseDTO}
      * @throws InvalidTokenException if the refresh token is missing, invalid, or expired
      */
     @PostMapping("/refresh")
-    public ResponseEntity<ResponseDTO<String>> refreshToken(HttpServletRequest request) {
+    public ResponseEntity<ResponseDTO<RefreshedTokensDTO>> refreshTokens(
+            HttpServletRequest request,
+            HttpServletResponse response) {
         String refreshToken = extractRefreshToken(request);
         log.debug("Refresh token extracted: {}", refreshToken != null ? "present" : "missing");
         try {
-            String newAccessToken = authService.refreshAccessToken(refreshToken);
-            log.info("Access token refreshed successfully");
-            return ResponseEntity.ok(ResponseDTO.success("Token refreshed", newAccessToken));
+            RefreshedTokensDTO tokens = authService.refreshTokens(refreshToken, response);
+            log.info("Access and refresh tokens rotated successfully");
+            return ResponseEntity.ok(ResponseDTO.success("Tokens refreshed", tokens));
         } catch (InvalidTokenException e) {
             log.warn("Refresh token invalid: {}", e.getMessage());
             throw e;
