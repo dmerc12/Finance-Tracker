@@ -39,13 +39,25 @@ public class TokenBlacklistTests {
         Date expiry = new Date(System.currentTimeMillis() - 1000);
         blacklist.blacklistToken(token, expiry);
         assertThat(blacklist.isBlacklisted(token)).isFalse();
-        assertThat(blacklist.isBlacklisted(token)).isFalse();
     }
 
     @Test
     @DisplayName("Unknown token not blacklisted")
     public void unknownToken() {
         assertThat(blacklist.isBlacklisted("unknown")).isFalse();
+    }
+
+    @Test
+    @DisplayName("Clear removes all tokens")
+    public void clearRemovesAllTokens() {
+        Date future = new Date(System.currentTimeMillis() + 600000);
+        blacklist.blacklistToken("token-a", future);
+        blacklist.blacklistToken("token-b", future);
+        assertThat(blacklist.isBlacklisted("token-a")).isTrue();
+        assertThat(blacklist.isBlacklisted("token-b")).isTrue();
+        blacklist.clear();
+        assertThat(blacklist.isBlacklisted("token-a")).isFalse();
+        assertThat(blacklist.isBlacklisted("token-b")).isFalse();
     }
 
     @Test

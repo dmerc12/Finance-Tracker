@@ -9,6 +9,7 @@ import com.dmerc12.api.mapper.UserMapper;
 import com.dmerc12.api.repository.UserRepository;
 import com.dmerc12.api.security.CustomUserDetailsService;
 import com.dmerc12.api.security.JwtService;
+import com.dmerc12.api.security.TokenBlacklist;
 import com.dmerc12.api.service.AuthService;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -20,9 +21,15 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Service;
 
+import java.util.Date;
+
 /**
  * Implementation of {@link AuthService}.
- * <p>Handles token refresh logic using the injected {@link JwtService} and {@link CustomUserDetailsService}.
+ * <p>Handles login and refresh-token rotation using the injected {@link JwtService},
+ * {@link CustomUserDetailsService}, and {@link TokenBlacklist}.
+ * <p>Refresh-token rotation invalidates the incoming token on each use by adding
+ * it to the {@link TokenBlacklist}; a consumed token presented again is rejected
+ * with {@link InvalidTokenException}.
  */
 @Slf4j
 @Service
@@ -32,6 +39,7 @@ public class AuthServiceImpl implements AuthService {
     private final JwtService jwtService;
     private final UserMapper userMapper;
     private final UserRepository userRepository;
+    private final TokenBlacklist tokenBlacklist;
     private final CustomUserDetailsService userDetailsService;
     private final AuthenticationManager authenticationManager;
 
@@ -50,12 +58,20 @@ public class AuthServiceImpl implements AuthService {
             log.warn("Invalid token type for refresh: {}", jwtService.extractTokenType(refreshToken));
             throw new InvalidTokenException("Invalid token type");
         }
+        // Reject tokens already consumed by a prior rotation
+        if (tokenBlacklist.isBlacklisted(refreshToken)) {
+            log.warn("Rejected reuse of already-consumed refresh token");
+            throw new InvalidTokenException("Invalid or expired refresh token");
+        }
         // Resolve the principal and issue a fresh pair of tokens
         String username = jwtService.extractUsername(refreshToken);
         UserDetails userDetails = userDetailsService.loadUserByUsername(username);
         Authentication auth = new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
         String newAccessToken = jwtService.generateAccessToken(auth);
         String newRefreshToken = jwtService.generateRefreshToken(auth);
+        // Blacklist consumed refresh tokens
+        Date refreshExpiry = jwtService.extractExpiration(refreshToken);
+        tokenBlacklist.blacklistToken(refreshToken, refreshExpiry);
         // Write rotated tokens back to the browser as an HTTP-only cookies
         jwtService.setAccessTokenCookie(response, newAccessToken);
         jwtService.setRefreshTokenCookie(response, newRefreshToken);

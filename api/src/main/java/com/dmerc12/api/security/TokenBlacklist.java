@@ -52,6 +52,18 @@ public class TokenBlacklist {
     }
 
     /**
+     * Removes every entry from the blacklist.
+     * <p>Intended for test isolation: the blacklist is a singleton, so state
+     * leaks between test methods unless it is reset.
+     * Not used in production request flows.
+     */
+    public void clear() {
+        int size = blacklist.size();
+        blacklist.clear();
+        log.debug("Cleared {} entries from token blacklist", size);
+    }
+
+    /**
      * Scheduled cleanup of expired blacklist entries.
      * Runs daily at midnight.
      */

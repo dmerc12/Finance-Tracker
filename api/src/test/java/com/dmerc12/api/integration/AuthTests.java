@@ -10,6 +10,7 @@ import com.dmerc12.api.dto.UserDTO;
 import com.dmerc12.api.repository.UserRepository;
 import com.dmerc12.api.security.CustomUserDetailsService;
 import com.dmerc12.api.security.JwtService;
+import com.dmerc12.api.security.TokenBlacklist;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
@@ -66,6 +67,9 @@ public class AuthTests  extends BaseIntegrationTest {
     private MockMvc mockMvc;
 
     @Autowired
+    private TokenBlacklist tokenBlacklist;
+
+    @Autowired
     private UserRepository userRepository;
 
     @Autowired
@@ -83,6 +87,7 @@ public class AuthTests  extends BaseIntegrationTest {
 
     @BeforeEach
     public void setup() {
+        tokenBlacklist.clear();
         userRepository.deleteAll();
         user = User.builder()
                 .email("owner@example.com")
@@ -1117,6 +1122,28 @@ public class AuthTests  extends BaseIntegrationTest {
         public void authHeaderNotBearer() throws Exception {
             mockMvc.perform(post(BASE_URL + "/refresh")
                             .header("Authorization", "Basic some-credentials")
+                            .with(csrf()))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.message").value("Invalid or expired refresh token"))
+                    .andExpect(jsonPath("$.error").value("Invalid Token"));
+        }
+
+        @Test
+        @DisplayName("Rejects a refresh token that has already been consumed")
+        public void rotatedRefreshTokenRejectedOnReuse() throws Exception {
+            String refreshToken = generateRefreshToken(user);
+            Cookie cookie = new Cookie("refresh_token", refreshToken);
+            cookie.setPath("/");
+            // First use: succeeds, rotates tokens, blacklists incoming token
+            mockMvc.perform(post(BASE_URL + "/refresh")
+                            .cookie(cookie)
+                            .with(csrf()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.data.accessToken").isString())
+                    .andExpect(jsonPath("$.data.refreshToken").isString());
+            // Second use with the same (now consumed token must be rejected, even though it's not expired
+            mockMvc.perform(post(BASE_URL + "/refresh")
+                            .cookie(cookie)
                             .with(csrf()))
                     .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.message").value("Invalid or expired refresh token"))

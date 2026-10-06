@@ -11,6 +11,7 @@ import com.dmerc12.api.mapper.UserMapper;
 import com.dmerc12.api.repository.UserRepository;
 import com.dmerc12.api.security.CustomUserDetailsService;
 import com.dmerc12.api.security.JwtService;
+import com.dmerc12.api.security.TokenBlacklist;
 import com.dmerc12.api.service.impl.AuthServiceImpl;
 import jakarta.servlet.http.HttpServletResponse;
 import org.junit.jupiter.api.DisplayName;
@@ -26,6 +27,7 @@ import org.springframework.security.authentication.UsernamePasswordAuthenticatio
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 
+import java.util.Date;
 import java.util.Optional;
 import java.util.Set;
 
@@ -36,7 +38,8 @@ import static org.mockito.Mockito.*;
 
 /**
  * Unit tests for {@link AuthServiceImpl}.
- * <p>Verifies refresh-token rotation and login flows including error paths.
+ * <p>Verifies refresh-token rotation, blacklisting of consumed tokens, and
+ * login flows.
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Auth Service Unit Tests")
@@ -57,6 +60,9 @@ public class AuthServiceTests {
     @Mock
     private UserRepository userRepository;
 
+    @Mock
+    private TokenBlacklist tokenBlacklist;
+
     @InjectMocks
     private AuthServiceImpl authService;
 
@@ -71,26 +77,51 @@ public class AuthServiceTests {
             String username = "test";
             String newAccessToken = "new.access.token";
             String newRefreshToken = "new.refresh.token";
+            Date refreshExpiry = new Date(System.currentTimeMillis() + 600_000L);
             when(jwtService.validateToken(refreshToken)).thenReturn(true);
             when(jwtService.extractTokenType(refreshToken)).thenReturn("refresh");
+            when(tokenBlacklist.isBlacklisted(refreshToken)).thenReturn(false);
             when(jwtService.extractUsername(refreshToken)).thenReturn(username);
             UserDetails userDetails = org.springframework.security.core.userdetails.User
                     .withUsername(username).password("pass").roles("USER").build();
             when(userDetailsService.loadUserByUsername(username)).thenReturn(userDetails);
             when(jwtService.generateAccessToken(any(Authentication.class))).thenReturn(newAccessToken);
             when(jwtService.generateRefreshToken(any(Authentication.class))).thenReturn(newRefreshToken);
+            when(jwtService.extractExpiration(refreshToken)).thenReturn(refreshExpiry);
             HttpServletResponse response = mock(HttpServletResponse.class);
             RefreshedTokensDTO result = authService.refreshTokens(refreshToken, response);
             assertThat(result.getAccessToken()).isEqualTo(newAccessToken);
             assertThat(result.getRefreshToken()).isEqualTo(newRefreshToken);
             verify(jwtService).validateToken(refreshToken);
             verify(jwtService).extractTokenType(refreshToken);
+            verify(tokenBlacklist).isBlacklisted(refreshToken);
             verify(jwtService).extractUsername(refreshToken);
             verify(userDetailsService).loadUserByUsername(username);
             verify(jwtService).generateAccessToken(any(Authentication.class));
             verify(jwtService).generateRefreshToken(any(Authentication.class));
+            verify(jwtService).extractExpiration(refreshToken);
+            verify(tokenBlacklist).blacklistToken(refreshToken, refreshExpiry);
             verify(jwtService).setAccessTokenCookie(response, newAccessToken);
             verify(jwtService).setRefreshTokenCookie(response, newRefreshToken);
+        }
+
+        @Test
+        @DisplayName("Rejects a refresh token that has already been consumed")
+        public void refreshTokenBlacklisted() {
+            String refreshToken = "consumed.token";
+            HttpServletResponse response = mock(HttpServletResponse.class);
+            when(jwtService.validateToken(refreshToken)).thenReturn(true);
+            when(jwtService.extractTokenType(refreshToken)).thenReturn("refresh");
+            when(tokenBlacklist.isBlacklisted(refreshToken)).thenReturn(true);
+            assertThatThrownBy(() -> authService.refreshTokens(refreshToken, response))
+                    .isInstanceOf(InvalidTokenException.class)
+                    .hasMessageContaining("Invalid or expired refresh token");
+            verify(jwtService).validateToken(refreshToken);
+            verify(jwtService).extractTokenType(refreshToken);
+            verify(tokenBlacklist).isBlacklisted(refreshToken);
+            verifyNoMoreInteractions(jwtService);
+            verifyNoInteractions(userDetailsService);
+            verify(tokenBlacklist, never()).blacklistToken(any(), any());
         }
 
         @Test
@@ -100,7 +131,7 @@ public class AuthServiceTests {
             assertThatThrownBy(() -> authService.refreshTokens(null, response))
                     .isInstanceOf(InvalidTokenException.class)
                     .hasMessageContaining("Invalid or expired refresh token");
-            verifyNoInteractions(jwtService, userDetailsService);
+            verifyNoInteractions(jwtService, userDetailsService, tokenBlacklist);
         }
 
         @Test
@@ -113,6 +144,7 @@ public class AuthServiceTests {
                     .hasMessageContaining("Invalid or expired refresh token");
             verify(jwtService).validateToken(refreshToken);
             verifyNoMoreInteractions(jwtService, userDetailsService);
+            verifyNoInteractions(tokenBlacklist);
         }
 
         @Test
@@ -128,6 +160,7 @@ public class AuthServiceTests {
             verify(jwtService).validateToken(refreshToken);
             verify(jwtService, times(2)).extractTokenType(refreshToken);
             verifyNoMoreInteractions(jwtService, userDetailsService);
+            verifyNoInteractions(tokenBlacklist);
         }
     }
 
