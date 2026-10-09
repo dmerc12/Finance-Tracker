@@ -1,5 +1,6 @@
 import type { RegisterRequest, LoginRequest, ErrorState } from '../../../types';
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
+import { fetchCurrentUser } from '../userSlice';
 import { authService } from '../../../services';
 import { getErrorData } from '../../../utils';
 
@@ -121,6 +122,13 @@ const authSlice = createSlice({
             .addCase(register.rejected, (state, action) => {
                 state.isLoading = false;
                 state.error = action.payload as ErrorState;
+            });
+        builder
+            .addCase(fetchCurrentUser.fulfilled, (state) => {
+                state.isAuthenticated = true;
+            })
+            .addCase(fetchCurrentUser.rejected, (state) => {
+                state.isAuthenticated = false;
             });
     },
 });

@@ -21,6 +21,7 @@ export { useAppDispatch, useAppSelector } from './hooks';
 export {
     // User slice
     fetchCurrentUser,
+    clearCurrentUser,
     clearUserError,
     resetUserState,
     // Auth slice

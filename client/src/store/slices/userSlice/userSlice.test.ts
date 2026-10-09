@@ -1,9 +1,14 @@
-import userReducer, { fetchCurrentUser, resetUserState, clearUserError } from './userSlice';
 import { mockIsAxiosError, createAxiosResponse } from '../../../test/mocks';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import type { UserDTO, ResponseDTO } from '../../../types';
 import { configureStore } from '@reduxjs/toolkit';
 import { authService } from '../../../services';
+import userReducer, {
+    fetchCurrentUser,
+    resetUserState,
+    clearCurrentUser,
+    clearUserError,
+} from './userSlice';
 
 vi.mock('../../../services', () => ({
     authService: {
@@ -113,6 +118,19 @@ describe('userSlice', () => {
             expect(store.getState().user.error.message).toBe('Boom');
             store.dispatch(clearUserError());
             expect(store.getState().user.error.message).toBeNull();
+        });
+
+        it('should clear current user with clearCurrentUser', () => {
+            const store = configureStore({ reducer: { user: userReducer } });
+            store.dispatch({
+                type: fetchCurrentUser.fulfilled.type,
+                payload: mockUser,
+            });
+            expect(store.getState().user.currentUser).toEqual(mockUser);
+            expect(store.getState().user.initialized).toBe(true);
+            store.dispatch(clearCurrentUser());
+            expect(store.getState().user.currentUser).toBeNull();
+            expect(store.getState().user.initialized).toBe(true);
         });
 
         it('should reset state with resetUserState', () => {

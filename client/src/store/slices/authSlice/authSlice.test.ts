@@ -30,6 +30,31 @@ vi.mock('axios', async () => {
 const mockedAuthService = vi.mocked(authService);
 
 describe('authSlice', () => {
+    describe('isAuthenticated', () => {
+        it('should set isAuthenticated when fetchCurrentUser succeeds', () => {
+            const store = configureStore({ reducer: { auth: authReducer } });
+            store.dispatch({
+                type: 'user/fetchCurrentUser/fulfilled',
+                payload: { id: 1, email: 'test@example.com', roles: ['ROLE_USER'] },
+            });
+            expect(store.getState().auth.isAuthenticated).toBe(true);
+        });
+
+        it('should clear isAuthenticated when fetchCurrentUser fails', () => {
+            const store = configureStore({ reducer: { auth: authReducer } });
+            store.dispatch({
+                type: 'user/fetchCurrentUser/fulfilled',
+                payload: { id: 1, email: 'test@example.com', roles: ['ROLE_USER'] },
+            });
+            expect(store.getState().auth.isAuthenticated).toBe(true);
+            store.dispatch({
+                type: 'user/fetchCurrentUser/rejected',
+                payload: { message: 'expired', fieldErrors: {} },
+            });
+            expect(store.getState().auth.isAuthenticated).toBe(false);
+        });
+    });
+
     describe('login', () => {
         const mockData: LoginRequest = {
             email: 'test@example.com',

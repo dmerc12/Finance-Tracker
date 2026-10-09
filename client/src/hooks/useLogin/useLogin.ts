@@ -1,10 +1,9 @@
+import { type AppDispatch, type RootState, login, fetchCurrentUser } from '../../store';
 import React, { useState, useMemo, useCallback, type ChangeEvent } from 'react';
-import { type AppDispatch, type RootState, login } from '../../store';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { validateLogin } from '../../validations';
 import { type LoginRequest } from '../../types';
-import { fetchCurrentUser } from '../../store';
 import { useForm } from '../useForm';
 import { toast } from 'sonner';
 
@@ -17,9 +16,10 @@ type LoginErrors = Partial<Record<keyof LoginRequest, string>> & {
  * post-login identity population, and redirect.
  *
  * <p>On success the {@code login} thunk is awaited, then {@code fetchCurrentUser}
- * is dispatched {fire-and-forget} so downstream guards see the user without a
- * second {@code /auth/me} round-trip.
- * The user is redirected to {@code location.state.from} if a guard sent them here,
+ * is also awaited so that {@code userSlice.currentUser} is populated before {@code navigate} runs.
+ * If we navigated first, the protected-route guard would see {@code isAuthenticated: true} but a
+ * null {@code currentUser} (fetch still pending) and bounce the user straight back to {@code /login}
+ * <p>The user is redirected to {@code location.state.from} if a guard sent them here,
  * otherwise to {@code /}.
  */
 export default function useLogin() {
@@ -66,7 +66,7 @@ export default function useLogin() {
         setGeneralError('');
         try {
             await dispatch(login(values)).unwrap();
-            dispatch(fetchCurrentUser());
+            await dispatch(fetchCurrentUser()).unwrap();
             toast.success('Welcome back!');
             const from = (location.state as { from?: string } | null)?.from ?? '/';
             navigate(from, { replace: true });
