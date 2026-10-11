@@ -1,15 +1,15 @@
+import { Unauthorized, Login, Register, UserManagement } from './pages';
 import { SessionBootstrap, ProtectedRoute } from './components';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { Unauthorized, Login, Register } from './pages';
 import AccountDetails from './pages/AccountDetails';
 import Transactions from './pages/Transactions';
-import MainLayout from './layouts/MainLayout';
 import { Toaster } from './components/ui';
 import Dashboard from './pages/Dashboard';
 import Analytics from './pages/Analytics';
 import NotFound from './pages/NotFound';
 import Settings from './pages/Settings';
 import Accounts from './pages/Accounts';
+import { MainLayout } from './layouts';
 
 function App() {
     return (
@@ -34,6 +34,14 @@ function App() {
                             <Route path="/transactions" element={<Transactions />} />
                             <Route path="/analytics" element={<Analytics />} />
                             <Route path="/settings" element={<Settings />} />
+                            <Route
+                                path="/admin/users"
+                                element={
+                                    <ProtectedRoute requiredRoles={['ROLE_ADMIN']}>
+                                        <UserManagement />
+                                    </ProtectedRoute>
+                                }
+                            />
                         </Route>
                         <Route path="*" element={<NotFound />} />
                     </Routes>

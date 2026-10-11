@@ -1,7 +1,16 @@
-import { LayoutDashboard, Wallet, CreditCard, ChartPie, Settings, LogOut } from 'lucide-react';
 import { Link, useLocation } from 'react-router-dom';
-import { cn, Separator } from '../ui';
+import { useAppSelector } from '../../../store';
+import { cn, Separator } from '../../ui';
 import { motion } from 'motion/react';
+import {
+    LayoutDashboard,
+    Wallet,
+    CreditCard,
+    ChartPie,
+    Settings,
+    LogOut,
+    Users,
+} from 'lucide-react';
 
 interface SidebarProps {
     isOpen: boolean;
@@ -10,12 +19,15 @@ interface SidebarProps {
 export default function Sidebar({ isOpen }: SidebarProps) {
     const location = useLocation();
     const currentPath = location.pathname;
+    const user = useAppSelector((state) => state.user.currentUser);
+    const isAdmin = user?.roles?.includes('ROLE_ADMIN') ?? false;
 
     const navItems = [
         { id: 'dashboard', path: '/', icon: LayoutDashboard, label: 'Dashboard' },
         { id: 'accounts', path: '/accounts', icon: Wallet, label: 'Accounts' },
         { id: 'transactions', path: '/transactions', icon: CreditCard, label: 'Transactions' },
         { id: 'analytics', path: '/analytics', icon: ChartPie, label: 'Analytics' },
+        ...(isAdmin ? [{ id: 'users', path: '/admin/users', icon: Users, label: 'Users' }] : []),
     ];
 
     const bottomItems = [{ path: '/settings', icon: Settings, label: 'Settings' }];
