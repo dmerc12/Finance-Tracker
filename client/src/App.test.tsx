@@ -21,8 +21,8 @@ vi.mock('./pages/unauthorized', () => ({ default: () => <div>Unauthorized Page</
 vi.mock('./pages/admin/user-management/UserManagement', () => ({
     default: () => <div>User Management Page</div>,
 }));
-vi.mock('./layouts/MainLayout', () => ({
-    default: () => (
+vi.mock('./layouts', () => ({
+    MainLayout: () => (
         <div>
             Main Layout
             <Outlet />

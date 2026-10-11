@@ -3,13 +3,13 @@ import { SessionBootstrap, ProtectedRoute } from './components';
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
 import AccountDetails from './pages/AccountDetails';
 import Transactions from './pages/Transactions';
-import MainLayout from './layouts/MainLayout';
 import { Toaster } from './components/ui';
 import Dashboard from './pages/Dashboard';
 import Analytics from './pages/Analytics';
 import NotFound from './pages/NotFound';
 import Settings from './pages/Settings';
 import Accounts from './pages/Accounts';
+import { MainLayout } from './layouts';
 
 function App() {
     return (

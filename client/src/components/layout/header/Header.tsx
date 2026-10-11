@@ -1,6 +1,6 @@
 import { Menu, X, User } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { Button } from '../ui/button';
+import { Button } from '../../ui';
 
 interface PageHeaderProps {
     title: string;
@@ -19,7 +19,13 @@ export default function Header({
 }: PageHeaderProps) {
     return (
         <header className="bg-white border-b p-3 flex items-center gap-3 flex-wrap">
-            <Button variant="outline" size="icon" onClick={onToggleSidebar} className="shrink-0">
+            <Button
+                variant="outline"
+                size="icon"
+                onClick={onToggleSidebar}
+                className="shrink-0"
+                aria-label={sidebarOpen ? 'Close sidebar' : 'Open sidebar'}
+            >
                 {sidebarOpen ? <X size={20} /> : <Menu size={20} />}
             </Button>
 
