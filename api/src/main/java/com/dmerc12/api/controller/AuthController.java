@@ -28,16 +28,17 @@ import java.util.Arrays;
  * <p>Provides endpoints for:
  * <ul>
  *     <li><b>Login:</b> {@code POST /api/auth/login}</li>
+ *     <li><b>Logout:</b> {@code POST /api/auth/logout}</li>
  *     <li><b>Token refresh:</b> {@code POST /api/auth/refresh}</li>
  *     <li><b>Registration:</b> {@code POST /api/auth/register}</li>
  *     <li><b>Current user profile:</b> {@code GET /api/auth/me}</li>
  *     <li><b>Password change:</b> {@code PUT /api/auth/change-password}</li>
- *     <li><b>Admin password reset:</b> {@code GET /api/auth/reset-password}</li>
+ *     <li><b>Admin password reset:</b> {@code GET /api/auth/reset-password}/{userId}</li>
  * </ul>
  * All endpoints return responses wrapped in a consistent {@link ResponseDTO} structure.
  * <p><b>Security:</b>
  * <ul>
- *     <li>Registration and login are public.</li>
+ *     <li>Registration, login, and logout are public.</li>
  *     <li>
  *         Token refresh accepts a refresh token via the {@code refresh_token} cookie
  *         or the {@code Authorization: Bearer} header.
@@ -160,13 +161,13 @@ public class AuthController {
      * @throws InvalidTokenException if the refresh token is missing, invalid, or expired
      */
     @PostMapping("/refresh")
-    public ResponseEntity<ResponseDTO<RefreshedTokensDTO>> refreshTokens(
+    public ResponseEntity<ResponseDTO<TokenPair>> refreshTokens(
             HttpServletRequest request,
             HttpServletResponse response) {
-        String refreshToken = extractRefreshToken(request);
+        String refreshToken = extractToken(request, "refresh_token");
         log.debug("Refresh token extracted: {}", refreshToken != null ? "present" : "missing");
         try {
-            RefreshedTokensDTO tokens = authService.refreshTokens(refreshToken, response);
+            TokenPair tokens = authService.refreshTokens(refreshToken, response);
             log.info("Access and refresh tokens rotated successfully");
             return ResponseEntity.ok(ResponseDTO.success("Tokens refreshed", tokens));
         } catch (InvalidTokenException e) {
@@ -175,27 +176,35 @@ public class AuthController {
         }
     }
 
-    private String extractRefreshToken(HttpServletRequest request) {
+    /**
+     * Extracts a JWT from the request.
+     * The {@code Authorization: Bearer} header takes precedence over the cookie of the same logical type.
+     *
+     * @param request the HTTP request
+     * @param cookieName the cookie name to fall back to when no Bearer header is present
+     * @return the token string, or {@code null}  if none was found
+     */
+    private String extractToken(HttpServletRequest request, String cookieName) {
         // 1. Try from Authorization header
         String authHeader = request.getHeader("Authorization");
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
-            log.debug("Extracted refresh token from Authorization header");
+            log.debug("Extracted token from Authorization header");
             return token;
         }
         // 2. Try from Cookie
         if (request.getCookies() != null) {
             return Arrays.stream(request.getCookies())
-                    .filter(c -> "refresh_token".equals(c.getName()))
+                    .filter(c -> cookieName.equals(c.getName()))
                     .map(Cookie::getValue)
                     .findFirst()
                     .map(token -> {
-                        log.debug("Extracted refresh token from cookie");
+                        log.debug("Extracted token from cookie");
                         return token;
                     })
                     .orElse(null);
         }
-        log.debug("No refresh token found");
+        log.debug("No token found");
         return null;
     }
 
@@ -213,5 +222,28 @@ public class AuthController {
         LoginResponse loginData = authService.login(request, response);
         log.info("User logged in: {}", loginData.getEmail());
         return ResponseEntity.ok(ResponseDTO.success("Login successful", loginData));
+    }
+
+    /**
+     * Logs out the current user.
+     *
+     * <p>Blacklists the access and refresh tokens (when present and still valid)
+     * so they cannot be replayed, then clears the auth cookies.
+     * Idempotent: anonymous callers and callers with only one valid token still receive
+     * a 200, with cookies cleared.
+     *
+     * @param request the HTTP request (cookies are read from here)
+     * @param response the HTTP response on which cookies are cleared
+     * @return {@code 200 OK} with a success message
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<ResponseDTO<Void>> logout(HttpServletRequest request, HttpServletResponse response) {
+        TokenPair tokens = TokenPair.builder()
+                .accessToken(extractToken(request, "access_token"))
+                .refreshToken(extractToken(request, "refresh_token"))
+                .build();
+        authService.logout(tokens, response);
+        log.info("User logged out");
+        return ResponseEntity.ok(ResponseDTO.success("Logged out successfully", null));
     }
 }

@@ -1,12 +1,9 @@
 package com.dmerc12.api.integration;
 
 import com.dmerc12.api.controller.AuthController;
-import com.dmerc12.api.dto.LoginRequest;
-import com.dmerc12.api.dto.PasswordChangeRequest;
-import com.dmerc12.api.dto.RegisterRequest;
+import com.dmerc12.api.dto.*;
 import com.dmerc12.api.entity.Role;
 import com.dmerc12.api.entity.User;
-import com.dmerc12.api.dto.UserDTO;
 import com.dmerc12.api.repository.UserRepository;
 import com.dmerc12.api.security.CustomUserDetailsService;
 import com.dmerc12.api.security.JwtService;
@@ -44,6 +41,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * <ul>
  *     <li>User registration - success and validation failures</li>
  *     <li>Login - success, incorrect password, email nonexistent, blank email/password</li>
+ *     <li>Logout - success, invalid or null tokens, idempotent</li>
  *     <li>Token refresh - success via cookie/header, missing/invalid refresh token, other token (access, non-bearer)</li>
  *     <li>Current user profile - success, caller isolation, unauthenticated</li>
  *     <li>Password change - success, ownership check, and validation errors</li>
@@ -51,6 +49,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * </ul>
  *
  * @see UserDTO
+ * @see TokenPair
  * @see AuthController
  * @see LoginRequest
  * @see RegisterRequest
@@ -1240,6 +1239,87 @@ public class AuthTests  extends BaseIntegrationTest {
                     .andExpect(jsonPath("$.fieldErrors.password").value("Password is required"))
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"));
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/auth/logout")
+    class LogoutTests {
+
+        @Test
+        @DisplayName("Returns 200 OK and clears both auth cookies")
+        public void clearsCookies() throws Exception {
+            mockMvc.perform(post(BASE_URL + "/logout").with(csrf()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").value("Logged out successfully"))
+                    .andExpect(cookie().maxAge("access_token", 0))
+                    .andExpect(cookie().maxAge("refresh_token", 0));
+        }
+
+        @Test
+        @DisplayName("Is idempotent - succeeds repeatedly with no cookies present")
+        public void idempotentWithoutCookies() throws Exception {
+            mockMvc.perform(post(BASE_URL + "/logout").with(csrf()))
+                    .andExpect(status().isOk());
+            mockMvc.perform(post(BASE_URL + "/logout").with(csrf()))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("Blacklists the access token so it cannot be reused on /me")
+        public void accessTokenRejectedAfterLogout() throws Exception {
+            String accessToken = generateAccessToken(user);
+            Cookie accessCookie = new Cookie("access_token", accessToken);
+            accessCookie.setPath("/");
+            mockMvc.perform(post(BASE_URL + "/logout")
+                            .cookie(accessCookie)
+                            .with(csrf()))
+                    .andExpect(status().isOk());
+            mockMvc.perform(get(BASE_URL + "/me").cookie(accessCookie))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("Blacklists the refresh token so it cannot be reused on /refresh")
+        public void refreshTokenRejectedAfterLogout() throws Exception {
+            String refreshToken = generateRefreshToken(user);
+            Cookie refreshCookie = new Cookie("refresh_token", refreshToken);
+            refreshCookie.setPath("/");
+            mockMvc.perform(post(BASE_URL + "/logout")
+                            .cookie(refreshCookie)
+                            .with(csrf()))
+                    .andExpect(status().isOk());
+            mockMvc.perform(post(BASE_URL + "/refresh").cookie(refreshCookie).with(csrf()))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.error").value("Invalid Token"));
+        }
+
+        @Test
+        @DisplayName("Ignores invalid access token and invalidates cookies")
+        public void ignoresInvalidAccessTokenInvalidatesCookies() throws Exception {
+            Cookie accessCookie = new Cookie("access_token", "invalid.access.token");
+            accessCookie.setPath("/");
+            mockMvc.perform(post(BASE_URL + "/logout")
+                            .cookie(accessCookie)
+                            .with(csrf()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").value("Logged out successfully"))
+                    .andExpect(cookie().maxAge("access_token", 0))
+                    .andExpect(cookie().maxAge("refresh_token", 0));
+        }
+
+        @Test
+        @DisplayName("Ignores invalid refresh token and invalidates cookies")
+        public void ignoresInvalidRefreshTokenInvalidatesCookies() throws Exception {
+            Cookie refreshCookie = new Cookie("refresh_token", "invalid.refresh.token");
+            refreshCookie.setPath("/");
+            mockMvc.perform(post(BASE_URL + "/logout")
+                            .cookie(refreshCookie)
+                            .with(csrf()))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").value("Logged out successfully"))
+                    .andExpect(cookie().maxAge("access_token", 0))
+                    .andExpect(cookie().maxAge("refresh_token", 0));
         }
     }
 }

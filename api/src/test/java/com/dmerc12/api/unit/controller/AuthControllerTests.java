@@ -190,14 +190,14 @@ public class AuthControllerTests {
         @DisplayName("Returns 200 OK with new tokens when refresh token is valid")
         public void success() {
             String refreshToken = "valid.refresh.token";
-            RefreshedTokensDTO rotated = RefreshedTokensDTO.builder()
+            TokenPair rotated = TokenPair.builder()
                     .accessToken("new.access.token")
                     .refreshToken("new.refresh.token")
                     .build();
             HttpServletResponse mockResponse = mock(HttpServletResponse.class);
             when(request.getHeader("Authorization")).thenReturn("Bearer " + refreshToken);
             when(authService.refreshTokens(refreshToken, mockResponse)).thenReturn(rotated);
-            ResponseEntity<ResponseDTO<RefreshedTokensDTO>> response = authController.refreshTokens(request, mockResponse);
+            ResponseEntity<ResponseDTO<TokenPair>> response = authController.refreshTokens(request, mockResponse);
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.getBody()).isNotNull();
             assertThat(response.getBody().getMessage()).isEqualTo("Tokens refreshed");
@@ -250,7 +250,7 @@ public class AuthControllerTests {
         @DisplayName("Extracts refresh token from cookie when Authorization header is absent")
         public void successFromCookie() {
             String refreshToken = "cookie.refresh.token";
-            RefreshedTokensDTO rotated = RefreshedTokensDTO.builder()
+            TokenPair rotated = TokenPair.builder()
                     .accessToken("new.access.token")
                     .refreshToken("new.refresh.token")
                     .build();
@@ -259,7 +259,7 @@ public class AuthControllerTests {
             Cookie cookie = new Cookie("refresh_token", refreshToken);
             when(request.getCookies()).thenReturn(new Cookie[]{cookie});
             when(authService.refreshTokens(refreshToken, mockResponse)).thenReturn(rotated);
-            ResponseEntity<ResponseDTO<RefreshedTokensDTO>> response = authController.refreshTokens(request, mockResponse);
+            ResponseEntity<ResponseDTO<TokenPair>> response = authController.refreshTokens(request, mockResponse);
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(response.getBody()).isNotNull();
             assertThat(response.getBody().getData()).isEqualTo(rotated);
@@ -303,6 +303,57 @@ public class AuthControllerTests {
                     .isInstanceOf(BadCredentialsException.class)
                     .hasMessageContaining("Invalid credentials");
             verify(authService).login(request, mockResponse);
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/auth/logout")
+    class LogoutTests {
+
+        @Test
+        @DisplayName("Returns 200 OK and passes cookie tokens to the service")
+        public void success() {
+            HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+            Cookie accessCookie = new Cookie("access_token", "access.value");
+            Cookie refreshCookie = new Cookie("refresh_token", "refresh.value");
+            when(request.getHeader("Authorization")).thenReturn(null);
+            when(request.getCookies()).thenReturn(new Cookie[]{accessCookie, refreshCookie});
+            ResponseEntity<ResponseDTO<Void>> response = authController.logout(request, mockResponse);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).isNotNull();
+            assertThat(response.getBody().getMessage()).isEqualTo("Logged out successfully");
+            verify(authService).logout(
+                    argThat(t -> "access.value".equals(t.getAccessToken())
+                            && "refresh.value".equals(t.getRefreshToken())),
+                    eq(mockResponse)
+            );
+        }
+
+        @Test
+        @DisplayName("Returns 200 OK and passes null tokens when no cookies or header are present")
+        public void noTokens() {
+            HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+            when(request.getHeader("Authorization")).thenReturn(null);
+            when(request.getCookies()).thenReturn(null);
+            ResponseEntity<ResponseDTO<Void>> response = authController.logout(request, mockResponse);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            verify(authService).logout(
+                    argThat(t -> t.getAccessToken() == null && t.getRefreshToken() == null),
+                    eq(mockResponse)
+            );
+        }
+
+        @Test
+        @DisplayName("Extracts tokens from the Authorization header when cookies are absent")
+        public void headerTokens() {
+            HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+            when(request.getHeader("Authorization")).thenReturn("Bearer header.token");
+            ResponseEntity<ResponseDTO<Void>> response = authController.logout(request, mockResponse);
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            verify(authService).logout(
+                    argThat(t -> "header.token".equals(t.getAccessToken())),
+                    eq(mockResponse)
+            );
         }
     }
 }

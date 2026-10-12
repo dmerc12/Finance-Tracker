@@ -2,7 +2,7 @@ package com.dmerc12.api.unit.service;
 
 import com.dmerc12.api.dto.LoginRequest;
 import com.dmerc12.api.dto.LoginResponse;
-import com.dmerc12.api.dto.RefreshedTokensDTO;
+import com.dmerc12.api.dto.TokenPair;
 import com.dmerc12.api.dto.UserDTO;
 import com.dmerc12.api.entity.User;
 import com.dmerc12.api.entity.Role;
@@ -39,7 +39,7 @@ import static org.mockito.Mockito.*;
 /**
  * Unit tests for {@link AuthServiceImpl}.
  * <p>Verifies refresh-token rotation, blacklisting of consumed tokens, and
- * login flows.
+ * auth flows.
  */
 @ExtendWith(MockitoExtension.class)
 @DisplayName("Auth Service Unit Tests")
@@ -89,7 +89,7 @@ public class AuthServiceTests {
             when(jwtService.generateRefreshToken(any(Authentication.class))).thenReturn(newRefreshToken);
             when(jwtService.extractExpiration(refreshToken)).thenReturn(refreshExpiry);
             HttpServletResponse response = mock(HttpServletResponse.class);
-            RefreshedTokensDTO result = authService.refreshTokens(refreshToken, response);
+            TokenPair result = authService.refreshTokens(refreshToken, response);
             assertThat(result.getAccessToken()).isEqualTo(newAccessToken);
             assertThat(result.getRefreshToken()).isEqualTo(newRefreshToken);
             verify(jwtService).validateToken(refreshToken);
@@ -251,6 +251,82 @@ public class AuthServiceTests {
                     .hasMessageContaining("Database connection failed");
             verify(authenticationManager).authenticate(any());
             verifyNoInteractions(userRepository, jwtService, mapper);
+        }
+    }
+
+    @Nested
+    @DisplayName("Logout Tests")
+    class LogoutTests {
+        @Test
+        @DisplayName("Blacklists both valid tokens and clears cookies")
+        public void success() {
+            String accessToken = "valid.access.token";
+            String refreshToken = "valid.refresh.token";
+            Date accessExpiry = new Date(System.currentTimeMillis() + 60_000L);
+            Date refreshExpiry = new Date(System.currentTimeMillis() + 600_000L);
+            when(jwtService.validateToken(accessToken)).thenReturn(true);
+            when(jwtService.validateToken(refreshToken)).thenReturn(true);
+            when(jwtService.extractExpiration(accessToken)).thenReturn(accessExpiry);
+            when(jwtService.extractExpiration(refreshToken)).thenReturn(refreshExpiry);
+            HttpServletResponse response = mock(HttpServletResponse.class);
+            TokenPair tokens = TokenPair.builder()
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken)
+                    .build();
+            authService.logout(tokens, response);
+            verify(tokenBlacklist).blacklistToken(accessToken, accessExpiry);
+            verify(tokenBlacklist).blacklistToken(refreshToken, refreshExpiry);
+            verify(jwtService).clearCookies(response);
+        }
+
+        @Test
+        @DisplayName("Clears cookies even when no tokens are present")
+        public void nullTokens() {
+            HttpServletResponse response = mock(HttpServletResponse.class);
+            TokenPair tokens = TokenPair.builder().build();
+            authService.logout(tokens, response);
+            verify(jwtService, never()).validateToken(any());
+            verify(jwtService, never()).extractExpiration(any());
+            verify(jwtService).clearCookies(response);
+        }
+
+        @Test
+        @DisplayName("Skips blacklisting for expired tokens but still clears cookies")
+        public void expiredTokens() {
+            String expiredAccess = "expired.access.token";
+            String expiredRefresh = "expired.refresh.token";
+            when(jwtService.validateToken(expiredAccess)).thenReturn(false);
+            when(jwtService.validateToken(expiredRefresh)).thenReturn(false);
+            HttpServletResponse response = mock(HttpServletResponse.class);
+            TokenPair tokens = TokenPair.builder()
+                    .accessToken(expiredAccess)
+                    .refreshToken(expiredRefresh)
+                    .build();
+            authService.logout(tokens, response);
+            verify(tokenBlacklist, never()).blacklistToken(any(), any());
+            verify(jwtService, never()).extractExpiration(any());
+            verify(jwtService).clearCookies(response);
+        }
+
+        @Test
+        @DisplayName("Blacklists only the valid token when the other is expired")
+        public void mixedValidity() {
+            String accessToken = "valid.access.token";
+            String refreshToken = "valid.refresh.token";
+            Date accessExpiry = new Date(System.currentTimeMillis() + 60_000L);
+            when(jwtService.validateToken(accessToken)).thenReturn(true);
+            when(jwtService.validateToken(refreshToken)).thenReturn(false);
+            when(jwtService.extractExpiration(accessToken)).thenReturn(accessExpiry);
+            HttpServletResponse response = mock(HttpServletResponse.class);
+            TokenPair tokens = TokenPair.builder()
+                    .accessToken(accessToken)
+                    .refreshToken(refreshToken)
+                    .build();
+            authService.logout(tokens, response);
+            verify(tokenBlacklist, times(1)).blacklistToken(any(), any());
+            verify(tokenBlacklist).blacklistToken(accessToken, accessExpiry);
+            verify(jwtService, times(1)).extractExpiration(any());
+            verify(jwtService).clearCookies(response);
         }
     }
 }
