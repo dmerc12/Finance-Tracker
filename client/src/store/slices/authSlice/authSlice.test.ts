@@ -1,4 +1,4 @@
-import authReducer, { register, login, clearAuthError, resetAuthState } from './authSlice';
+import authReducer, { register, login, clearAuthError, resetAuthState, logout } from './authSlice';
 import { mockIsAxiosError, createAxiosResponse } from '../../../test/mocks';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { configureStore } from '@reduxjs/toolkit';
@@ -15,6 +15,7 @@ vi.mock('../../../services', () => ({
     authService: {
         register: vi.fn(),
         login: vi.fn(),
+        logout: vi.fn(),
     },
 }));
 
@@ -144,6 +145,44 @@ describe('authSlice', () => {
                 message: 'Network error',
                 fieldErrors: {},
             });
+        });
+    });
+
+    describe('logout', () => {
+        it('resets the auth slice on fulfilled', async () => {
+            const response: ResponseDTO<void> = {
+                message: 'Logged out successfully',
+                timestamp: new Date().toISOString(),
+                status: 200,
+            };
+            mockedAuthService.logout.mockResolvedValue(createAxiosResponse(response));
+            const store = configureStore({ reducer: { auth: authReducer } });
+            store.dispatch({
+                type: login.fulfilled.type,
+                payload: { email: 'test@example.com' },
+            });
+            expect(store.getState().auth.isAuthenticated).toBe(true);
+            await store.dispatch(logout());
+            expect(store.getState().auth).toStrictEqual({
+                isAuthenticated: false,
+                isLoading: false,
+                error: { message: null, fieldErrors: null },
+            });
+        });
+
+        it('resets the auth slice on rejected (idempotent logout)', async () => {
+            mockIsAxiosError.mockReturnValue(false);
+            mockedAuthService.logout.mockRejectedValue(new Error('Network error'));
+            const store = configureStore({ reducer: { auth: authReducer } });
+            store.dispatch({
+                type: login.fulfilled.type,
+                payload: { email: 'test@example.com' },
+            });
+            expect(store.getState().auth.isAuthenticated).toBe(true);
+            await store.dispatch(logout());
+            expect(store.getState().auth.isAuthenticated).toBe(false);
+            expect(store.getState().auth.isLoading).toBe(false);
+            expect(store.getState().auth.error).toEqual({ message: null, fieldErrors: null });
         });
     });
 

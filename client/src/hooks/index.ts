@@ -8,5 +8,6 @@ export { useAnalytics } from './useAnalytics';
 export { useSettings } from './useSettings';
 export { useAccounts } from './useAccounts';
 export { useRegister } from './useRegister';
+export { useLogout } from './useLogout';
 export { useLogin } from './useLogin';
 export { useForm } from './useForm';
