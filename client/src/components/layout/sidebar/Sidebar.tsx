@@ -1,7 +1,9 @@
 import { Link, useLocation } from 'react-router-dom';
 import { useAppSelector } from '../../../store';
+import { useLogout } from '../../../hooks';
 import { cn, Separator } from '../../ui';
 import { motion } from 'motion/react';
+import { Button } from '../../ui';
 import {
     LayoutDashboard,
     Wallet,
@@ -21,6 +23,7 @@ export default function Sidebar({ isOpen }: SidebarProps) {
     const currentPath = location.pathname;
     const user = useAppSelector((state) => state.user.currentUser);
     const isAdmin = user?.roles?.includes('ROLE_ADMIN') ?? false;
+    const { handleLogout } = useLogout();
 
     const navItems = [
         { id: 'dashboard', path: '/', icon: LayoutDashboard, label: 'Dashboard' },
@@ -96,14 +99,15 @@ export default function Sidebar({ isOpen }: SidebarProps) {
                         </li>
                     ))}
                     <li>
-                        <Link
-                            to="/login"
+                        <Button
+                            type="button"
+                            onClick={handleLogout}
                             className="flex items-center gap-2 px-3 py-2 rounded-md transition-colors text-red-400 
                             hover:bg-slate-800 hover:text-red-300 no-underline"
                         >
                             <LogOut size={20} />
                             Logout
-                        </Link>
+                        </Button>
                     </li>
                 </ul>
             </div>
