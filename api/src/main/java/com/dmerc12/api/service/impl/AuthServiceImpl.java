@@ -2,7 +2,7 @@ package com.dmerc12.api.service.impl;
 
 import com.dmerc12.api.dto.LoginRequest;
 import com.dmerc12.api.dto.LoginResponse;
-import com.dmerc12.api.dto.RefreshedTokensDTO;
+import com.dmerc12.api.dto.TokenPair;
 import com.dmerc12.api.entity.User;
 import com.dmerc12.api.exception.InvalidTokenException;
 import com.dmerc12.api.mapper.UserMapper;
@@ -47,7 +47,7 @@ public class AuthServiceImpl implements AuthService {
      * {@inheritDoc}
      */
     @Override
-    public RefreshedTokensDTO refreshTokens(String refreshToken, HttpServletResponse response) {
+    public TokenPair refreshTokens(String refreshToken, HttpServletResponse response) {
         // Validate the token is present and not expired/tampered
         if (refreshToken == null || !jwtService.validateToken(refreshToken)) {
             log.warn("Invalid or expired refresh token");
@@ -75,7 +75,7 @@ public class AuthServiceImpl implements AuthService {
         // Write rotated tokens back to the browser as an HTTP-only cookies
         jwtService.setAccessTokenCookie(response, newAccessToken);
         jwtService.setRefreshTokenCookie(response, newRefreshToken);
-        RefreshedTokensDTO tokens = RefreshedTokensDTO.builder()
+        TokenPair tokens = TokenPair.builder()
                 .accessToken(newAccessToken)
                 .refreshToken(newRefreshToken)
                 .build();
@@ -123,5 +123,29 @@ public class AuthServiceImpl implements AuthService {
             log.error("Unexpected error during login for email: {}", request.getEmail(), e);
             throw e;
         }
+    }
+
+    /**
+     * {@inheritDoc}
+     */
+    @Override
+    public void logout(TokenPair tokens, HttpServletResponse response) {
+        // Blacklist each token only if it's still valid.
+        // An expired token is already dead.
+        // Calling extractExpiration on it would throw because the JWT parser rejects expired claims.
+        if (tokens.getAccessToken() != null && jwtService.validateToken(tokens.getAccessToken())) {
+            Date expiry = jwtService.extractExpiration(tokens.getAccessToken());
+            tokenBlacklist.blacklistToken(tokens.getAccessToken(), expiry);
+            log.debug("Access token blacklisted on logout");
+        }
+        if (tokens.getRefreshToken() != null && jwtService.validateToken(tokens.getRefreshToken())) {
+            Date expiry = jwtService.extractExpiration(tokens.getRefreshToken());
+            tokenBlacklist.blacklistToken(tokens.getRefreshToken(), expiry);
+            log.debug("Refresh token blacklisted on logout");
+        }
+        // Always clear cookies, even if neither token was valid.
+        // This makes the endpoint idempotent and safe to call from any auth state.
+        jwtService.clearCookies(response);
+        log.info("User logged out");
     }
 }

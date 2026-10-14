@@ -33,12 +33,13 @@ export const authService = {
     },
     /**
      * Log out the current user.
-     * <p>The backend clears the HTTP-only cookie.
+     * <p>The backend blacklists the current access and refresh tokens and clears the auth cookies.
+     * Safe to call from any auth state - an unauthenticated caller still receives 200 and has
+     * their cookies cleared.
+     * @returns Promise with the response
      */
     logout: () => {
-        // TODO: implement logout (clear cookies, etc.)
-        console.log('Logout called');
-        return api.post('/auth/logout');
+        return api.post<ResponseDTO<void>>('/auth/logout');
     },
     /**
      * Fetch the current authenticated user's details.

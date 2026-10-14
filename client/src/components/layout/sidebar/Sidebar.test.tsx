@@ -1,12 +1,19 @@
 import userReducer from '../../../store/slices/userSlice/userSlice';
 import authReducer from '../../../store/slices/authSlice/authSlice';
+import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { configureStore } from '@reduxjs/toolkit';
 import { MemoryRouter } from 'react-router-dom';
-import { describe, it, expect } from 'vitest';
 import type { UserDTO } from '../../../types';
 import { Provider } from 'react-redux';
 import Sidebar from './Sidebar';
+
+const mockHandleLogout = vi.fn();
+
+vi.mock('../../../hooks', () => ({
+    useLogout: () => ({ handleLogout: mockHandleLogout }),
+}));
 
 const regularUser: UserDTO = {
     id: 1,
@@ -50,6 +57,10 @@ const renderSidebar = (user: UserDTO | null) => {
 };
 
 describe('Sidebar', () => {
+    beforeEach(() => {
+        vi.clearAllMocks();
+    });
+
     describe('base navigation', () => {
         it('renders the standard nav items for a regular user', () => {
             renderSidebar(regularUser);
@@ -77,6 +88,20 @@ describe('Sidebar', () => {
         it('does not render the Users link when no user is loaded', () => {
             renderSidebar(null);
             expect(screen.queryByRole('link', { name: /^users$/i })).not.toBeInTheDocument();
+        });
+    });
+
+    describe('logout', () => {
+        it('renders the logout button', () => {
+            renderSidebar(regularUser);
+            expect(screen.getByRole('button', { name: /logout/i })).toBeInTheDocument();
+        });
+
+        it('calls handleLogout when the logout button is clicked', async () => {
+            const user = userEvent.setup();
+            renderSidebar(regularUser);
+            await user.click(screen.getByRole('button', { name: /logout/i }));
+            expect(mockHandleLogout).toHaveBeenCalledTimes(1);
         });
     });
 });

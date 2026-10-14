@@ -89,6 +89,28 @@ describe('authService', () => {
         });
     });
 
+    describe('logout', () => {
+        const mockSuccessResponse: ResponseDTO<void> = {
+            message: 'Logged out successfully',
+            status: 200,
+            timestamp: new Date().toISOString(),
+        };
+
+        it('calls api.post with /auth/logout and no payload', async () => {
+            mockedAPI.post.mockResolvedValue({ data: mockSuccessResponse });
+            const result = await authService.logout();
+            expect(mockedAPI.post).toHaveBeenCalledTimes(1);
+            expect(mockedAPI.post).toHaveBeenCalledWith('/auth/logout');
+            expect(result).toEqual({ data: mockSuccessResponse });
+        });
+
+        it('propagates network errors', async () => {
+            const error = new Error('Network error');
+            mockedAPI.post.mockRejectedValue(error);
+            await expect(authService.logout()).rejects.toThrow('Network error');
+        });
+    });
+
     describe('register', () => {
         const mockData: RegisterRequest = {
             email: 'test@example.com',

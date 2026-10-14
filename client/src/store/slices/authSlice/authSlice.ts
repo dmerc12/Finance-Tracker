@@ -46,14 +46,20 @@ export const login = createAsyncThunk(
 
 /**
  * Thunk to log out a user.
- * <p>The backend clears the HTTP-only cookie.
+ * <p>The backend blacklists the current access and refresh tokens and clears the auth cookies.
+ * The frontend clears its own state regardless of whether this call succeeds -
+ * see {@code extraReducers} below.
  */
 export const logout = createAsyncThunk('auth/logout', async (_, { rejectWithValue }) => {
     try {
         await authService.logout();
         return { success: true };
-    } catch (error: any) {
-        return rejectWithValue(error.response?.data?.message || 'Logout failed');
+    } catch (error: unknown) {
+        const { message } = getErrorData(error);
+        return rejectWithValue({
+            message: message || 'Logout failed',
+            fieldErrors: {},
+        });
     }
 });
 
@@ -103,6 +109,10 @@ const authSlice = createSlice({
                 state.error = action.payload as ErrorState;
             });
         // -- logout --
+        // Both success and failure reset the slice.
+        // The frontend cannot clear HttpOnly cookies;
+        // if the API call fails, local state is cleared anyway and the cookies expire naturally.
+        // From the user's perspective, the click on "Logout" always logs them out.
         builder
             .addCase(logout.pending, (state) => {
                 state.isLoading = true;
