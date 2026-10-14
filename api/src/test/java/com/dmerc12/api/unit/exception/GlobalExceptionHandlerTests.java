@@ -8,6 +8,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -25,20 +26,23 @@ import static org.mockito.Mockito.when;
 
 /**
  * Unit tests for {@link GlobalExceptionHandler}.
- * <p>Verifies that each exception handler returns the correct HTTP status and structured
- * error response body for the corresponding exception type.
+ * <p>Verifies that each exception handler returns the correct HTTP status and
+ * structured error response body for the corresponding exception type.
  * <p><b>Test scenarios:</b>
  * <ul>
+ *     <li>Authentication exceptions → status and error code carried by the exception</li>
+ *     <li>Rate limit exceeded exceptions → 429 with Retry-After header</li>
  *     <li>Generic unhandled exceptions → 500 Internal Server Error</li>
- *     <li>Duplicate resource → 409 Conflict</li>
- *     <li>Password mismatch → 400 Bad Request</li>
- *     <li>Validation errors (method argument not valid) → 400 Bad Request with field errors</li>
+ *     <li>Duplicate resource exceptions → 409 Conflict</li>
+ *     <li>Validation errors → 400 Bad Request with field errors</li>
+ *     <li>Resource not found → 404 Not Found</li>
+ *     <li>Access denied → 403 Forbidden</li>
+ *     <li>Bad credentials → 401 Unauthorized</li>
  * </ul>
  *
  * @see GlobalExceptionHandler
- * @see DuplicateResourceException
- * @see PasswordMismatchException
- * @see MethodArgumentNotValidException
+ * @see AuthException
+ * @see RateLimitExceededException
  */
 @ActiveProfiles("test")
 @ExtendWith(MockitoExtension.class)
@@ -47,6 +51,72 @@ public class GlobalExceptionHandlerTests {
 
     @InjectMocks
     private GlobalExceptionHandler handler;
+
+    @Nested
+    @DisplayName("handleAuthException() Tests")
+    class HandleAuthExceptionTests {
+
+        @Test
+        @DisplayName("Invalid token maps to 401 with the exception's error code")
+        public void invalidTokenMapsTo401() {
+            InvalidTokenException ex = new InvalidTokenException("Invalid or expired token");
+            ResponseEntity<ResponseDTO<Object>> response = handler.handleAuthException(ex);
+            assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
+            ResponseDTO<Object> body = response.getBody();
+            assertNotNull(body);
+            assertNotNull(body.getTimestamp());
+            assertEquals(401, body.getStatus());
+            assertEquals("Invalid Token", body.getError());
+            assertEquals("Invalid or expired token", body.getMessage());
+            assertNull(body.getData());
+            assertNull(body.getFieldErrors());
+        }
+
+        @Test
+        @DisplayName("Password mismatch maps to 400 with the exception's error code")
+        public void passwordMismatchMapsTo401() {
+            PasswordMismatchException ex = new PasswordMismatchException("Passwords do not match");
+            ResponseEntity<ResponseDTO<Object>> response = handler.handleAuthException(ex);
+            assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
+            ResponseDTO<Object> body = response.getBody();
+            assertNotNull(body);
+            assertNotNull(body.getTimestamp());
+            assertEquals(400, body.getStatus());
+            assertEquals("Password Mismatch", body.getError());
+            assertEquals("Passwords do not match", body.getMessage());
+            assertNull(body.getData());
+            assertNull(body.getFieldErrors());
+        }
+    }
+
+    @Nested
+    @DisplayName("handleRateLimitExceededException() Tests")
+    class HandleRateLimitExceededExceptionTests {
+
+        @Test
+        @DisplayName("Returns 429 with Retry-After header matching the exception")
+        public void returns429WithRetryAfter() {
+            RateLimitExceededException ex = new RateLimitExceededException("Too many login attempts", 60L);
+            ResponseEntity<ResponseDTO<Object>> response = handler.handleRateLimitExceededException(ex);
+            assertEquals(HttpStatus.TOO_MANY_REQUESTS, response.getStatusCode());
+            ResponseDTO<Object> body = response.getBody();
+            assertNotNull(body);
+            assertNotNull(body.getTimestamp());
+            assertEquals(429, body.getStatus());
+            assertEquals("Too Many Requests", body.getError());
+            assertEquals("Too many login attempts", body.getMessage());
+            assertNull(body.getData());
+            assertNull(body.getFieldErrors());
+        }
+
+        @Test
+        @DisplayName("Propagates the retryAfterSeconds value into the header")
+        public void propagatesRetryAfterValue() {
+            RateLimitExceededException ex = new RateLimitExceededException("Slow down", 3600L);
+            ResponseEntity<ResponseDTO<Object>> response = handler.handleRateLimitExceededException(ex);
+            assertEquals("3600", response.getHeaders().getFirst(HttpHeaders.RETRY_AFTER));
+        }
+    }
 
     @Nested
     @DisplayName("handleAllExceptions() Tests")
@@ -93,26 +163,6 @@ public class GlobalExceptionHandlerTests {
             assertEquals(409, body.getStatus());
             assertEquals("Duplicate Resource", body.getError());
             assertEquals(ex.getMessage(), body.getMessage());
-            assertNull(body.getData());
-            assertNull(body.getFieldErrors());
-        }
-    }
-
-    @Nested
-    @DisplayName("handlePasswordMismatchException() Tests")
-    class HandlePasswordMismatchExceptionTests {
-        @Test
-        @DisplayName("Handles password mismatch exception thrown")
-        public void handlesPasswordMismatchExceptionThrown() {
-            PasswordMismatchException ex = new PasswordMismatchException("Passwords do not match");
-            ResponseEntity<ResponseDTO<Object>> response = handler.handlePasswordMismatchException(ex);
-            assertEquals(HttpStatus.BAD_REQUEST, response.getStatusCode());
-            ResponseDTO<Object> body = response.getBody();
-            assertNotNull(body);
-            assertNotNull(body.getTimestamp());
-            assertEquals(400, body.getStatus());
-            assertEquals("Password Mismatch", body.getError());
-            assertEquals("Passwords do not match", body.getMessage());
             assertNull(body.getData());
             assertNull(body.getFieldErrors());
         }
@@ -224,27 +274,6 @@ public class GlobalExceptionHandlerTests {
             assertNotNull(body.getTimestamp());
             assertEquals(403, body.getStatus());
             assertEquals("Forbidden", body.getError());
-            assertEquals(errorMessage, body.getMessage());
-            assertNull(body.getData());
-            assertNull(body.getFieldErrors());
-        }
-    }
-
-    @Nested
-    @DisplayName("handleInvalidTokenException() Tests")
-    class HandleInvalidTokenExceptionTests {
-        @Test
-        @DisplayName("Returns 401 Forbidden with error details")
-        public void handlesInvalidTokenExceptionThrown() {
-            String errorMessage = "Unauthorized";
-            InvalidTokenException ex = new InvalidTokenException(errorMessage);
-            ResponseEntity<ResponseDTO<Object>> response = handler.handleInvalidTokenException(ex);
-            assertEquals(HttpStatus.UNAUTHORIZED, response.getStatusCode());
-            ResponseDTO<Object> body = response.getBody();
-            assertNotNull(body);
-            assertNotNull(body.getTimestamp());
-            assertEquals(401, body.getStatus());
-            assertEquals("Invalid Token", body.getError());
             assertEquals(errorMessage, body.getMessage());
             assertNull(body.getData());
             assertNull(body.getFieldErrors());
