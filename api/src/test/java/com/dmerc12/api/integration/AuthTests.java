@@ -8,6 +8,7 @@ import com.dmerc12.api.repository.UserRepository;
 import com.dmerc12.api.security.CustomUserDetailsService;
 import com.dmerc12.api.security.JwtService;
 import com.dmerc12.api.security.TokenBlacklist;
+import com.dmerc12.api.service.RateLimitService;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import jakarta.servlet.http.Cookie;
 import org.junit.jupiter.api.BeforeEach;
@@ -58,7 +59,13 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @DisplayName("Authentication Integration Tests")
 @TestPropertySource(properties = {
         "jwt.secret=c2VjcmV0S2V5Rm9ySlNXVGVzdGluZ1NlY3JldEtleUZvckpTV1Rlc3Rpbmc=",
-        "jwt.expiration=86400000"
+        "jwt.expiration=86400000",
+        "rate-limit.login.email-capacity=5",
+        "rate-limit.login.email-window-seconds=900",
+        "rate-limit.login.ip-capacity=100",
+        "rate-limit.login.ip-window-seconds=900",
+        "rate-limit.register.ip-capacity=3",
+        "rate-limit.register.ip-window-seconds=3600"
 })
 public class AuthTests  extends BaseIntegrationTest {
 
@@ -78,6 +85,9 @@ public class AuthTests  extends BaseIntegrationTest {
     private JwtService jwtService;
 
     @Autowired
+    private RateLimitService rateLimitService;
+
+    @Autowired
     private CustomUserDetailsService userDetailsService;
 
     private User user;
@@ -87,6 +97,7 @@ public class AuthTests  extends BaseIntegrationTest {
     @BeforeEach
     public void setup() {
         tokenBlacklist.clear();
+        rateLimitService.reset();
         userRepository.deleteAll();
         user = User.builder()
                 .email("owner@example.com")
@@ -1320,6 +1331,106 @@ public class AuthTests  extends BaseIntegrationTest {
                     .andExpect(jsonPath("$.message").value("Logged out successfully"))
                     .andExpect(cookie().maxAge("access_token", 0))
                     .andExpect(cookie().maxAge("refresh_token", 0));
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/auth/login - rate limiting")
+    class LoginRateLimitTests {
+
+        private String loginJson(String email, String password) throws Exception {
+            return new ObjectMapper().writeValueAsString(new LoginRequest(email, password));
+        }
+
+        @Test
+        @DisplayName("Sixth login attempt for the same email returns 429 with Retry-After")
+        public void sixthAttemptForSameEmailReturns429() throws Exception {
+            for (int i = 0; i < 5; i++) {
+                mockMvc.perform(post(BASE_URL + "/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(loginJson("owner@example.com", "WrongPass!")))
+                                .andExpect(status().isUnauthorized());
+
+            }
+            mockMvc.perform(post(BASE_URL + "/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(loginJson("owner@example.com", "WrongPass!")))
+                    .andExpect(status().isTooManyRequests())
+                    .andExpect(header().exists("Retry-After"))
+                    .andExpect(jsonPath("$.message")
+                            .value(containsString("login attempts for this email")))
+                    .andExpect(jsonPath("$.error").value("Too Many Requests"))
+                    .andExpect(jsonPath("$.status").value(429));
+        }
+
+        @Test
+        @DisplayName("A different email is not throttled by the first email's bucket")
+        public void differentEmailIsNotThrottled() throws Exception {
+            for (int i = 0; i < 5; i++) {
+                mockMvc.perform(post(BASE_URL + "/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(loginJson("owner@example.com", "WrongPass!")))
+                        .andExpect(status().isUnauthorized());
+
+            }
+            mockMvc.perform(post(BASE_URL + "/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(loginJson("other@example.com", "WrongPass!")))
+                    .andExpect(status().isUnauthorized());
+        }
+
+        @Test
+        @DisplayName("Successful login still counts against the rate limit")
+        public void successfulLoginConsumesBudget() throws Exception {
+            for (int i = 0; i < 5; i++) {
+                mockMvc.perform(post(BASE_URL + "/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(loginJson("owner@example.com", "WrongPass!")))
+                        .andExpect(status().isUnauthorized());
+
+            }
+            mockMvc.perform(post(BASE_URL + "/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(loginJson("owner@example.com", "OldPass123!")))
+                    .andExpect(status().isTooManyRequests());
+        }
+    }
+
+    @Nested
+    @DisplayName("POST /api/auth/register - rate limiting")
+    class RegisterRateLimitTests {
+
+        private String registerJson(String email) throws Exception {
+            RegisterRequest request = new RegisterRequest();
+            request.setEmail(email);
+            request.setPassword("Password123!");
+            request.setPasswordConfirm("Password123!");
+            request.setFirstName("John");
+            request.setLastName("Doe");
+            return new ObjectMapper().writeValueAsString(request);
+        }
+
+        @Test
+        @DisplayName("Fourth registration from the same IP returns 429 with Retry-After")
+        public void fourthAttemptForSameIPReturns429() throws Exception {
+            for (int i = 0; i < 3; i++) {
+                mockMvc.perform(post(BASE_URL + "/register")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(registerJson("rate-limit-" + i + "-" +
+                                        System.currentTimeMillis() + "@example.com")))
+                        .andExpect(status().isCreated());
+
+            }
+            mockMvc.perform(post(BASE_URL + "/register")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(registerJson("rate-limit-" +
+                                    System.currentTimeMillis() + "@example.com")))
+                    .andExpect(status().isTooManyRequests())
+                    .andExpect(header().exists("Retry-After"))
+                    .andExpect(jsonPath("$.message")
+                            .value(containsString("register attempts for this IP")))
+                    .andExpect(jsonPath("$.error").value("Too Many Requests"))
+                    .andExpect(jsonPath("$.status").value(429));
         }
     }
 }

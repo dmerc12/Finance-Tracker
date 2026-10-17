@@ -3,8 +3,10 @@ package com.dmerc12.api.unit.controller;
 import com.dmerc12.api.controller.AuthController;
 import com.dmerc12.api.dto.*;
 import com.dmerc12.api.exception.InvalidTokenException;
+import com.dmerc12.api.exception.RateLimitExceededException;
 import com.dmerc12.api.security.SecurityService;
 import com.dmerc12.api.service.AuthService;
+import com.dmerc12.api.service.RateLimitService;
 import com.dmerc12.api.service.UserService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -52,6 +54,9 @@ public class AuthControllerTests {
 
     @Mock
     private HttpServletRequest request;
+
+    @Mock
+    private RateLimitService rateLimitService;
 
     @InjectMocks
     private AuthController authController;
@@ -102,12 +107,12 @@ public class AuthControllerTests {
         @Test
         @DisplayName("Returns 201 Created with user data on successful registration")
         public void success() {
-            RegisterRequest request = new RegisterRequest();
-            request.setEmail(TEST_EMAIL);
-            request.setPassword("Password123!");
-            request.setPasswordConfirm("Password123!");
-            request.setFirstName("John");
-            request.setLastName("Doe");
+            RegisterRequest registerRequest = new RegisterRequest();
+            registerRequest.setEmail(TEST_EMAIL);
+            registerRequest.setPassword("Password123!");
+            registerRequest.setPasswordConfirm("Password123!");
+            registerRequest.setFirstName("John");
+            registerRequest.setLastName("Doe");
             UserDTO userDTO = UserDTO.builder()
                     .id(1L)
                     .email(TEST_EMAIL)
@@ -115,12 +120,91 @@ public class AuthControllerTests {
                     .lastName("Doe")
                     .build();
             when(userService.registerUser(any(RegisterRequest.class))).thenReturn(userDTO);
-            ResponseEntity<ResponseDTO<UserDTO>> response = authController.registerUser(request);
+            ResponseEntity<ResponseDTO<UserDTO>> response = authController.registerUser(registerRequest, request);
             assertThat(response.getStatusCode()).isEqualTo(HttpStatus.CREATED);
             assertThat(response.getBody()).isNotNull();
             assertThat(response.getBody().getMessage()).isEqualTo("User registered successfully");
             assertThat(response.getBody().getData()).isEqualTo(userDTO);
-            verify(userService).registerUser(request);
+            verify(rateLimitService).checkRegister(any(String.class));
+            verify(userService).registerUser(registerRequest);
+        }
+
+        @Test
+        @DisplayName("Propagates RateLimitExceededException without calling UserService")
+        public void rateLimitExceeded() {
+            RegisterRequest registerRequest = new RegisterRequest();
+            registerRequest.setEmail(TEST_EMAIL);
+            registerRequest.setPassword("Password123!");
+            registerRequest.setPasswordConfirm("Password123!");
+            registerRequest.setFirstName("John");
+            registerRequest.setLastName("Doe");
+            doThrow(new RateLimitExceededException("Too many attempts", 60L))
+                    .when(rateLimitService).checkRegister(any(String.class));
+            assertThatThrownBy(() -> authController.registerUser(registerRequest, request))
+                    .isInstanceOf(RateLimitExceededException.class);
+            verifyNoInteractions(userService);
+        }
+
+        @Nested
+        @DisplayName("client IP resolution")
+        class ExtractClientIpTests {
+
+            private RegisterRequest buildRegisterRequest() {
+                RegisterRequest r = new RegisterRequest();
+                r.setEmail("test@example.com");
+                r.setPassword("Password123!");
+                r.setPasswordConfirm("Password123!");
+                r.setFirstName("John");
+                r.setLastName("Doe");
+                return r;
+            }
+
+            @Test
+            @DisplayName("Uses the first entry of X-Forwarded-For when the header is present")
+            public void usesFirstForwardedForEntry() {
+                RegisterRequest req = buildRegisterRequest();
+                UserDTO userDTO = UserDTO.builder().id(1L).email(TEST_EMAIL).build();
+                when(request.getHeader("X-Forwarded-For")).thenReturn("203.0.113.5, 198.51.100.7");
+                when(userService.registerUser(any(RegisterRequest.class))).thenReturn(userDTO);
+                authController.registerUser(req, request);
+                verify(rateLimitService).checkRegister("203.0.113.5");
+            }
+
+            @Test
+            @DisplayName("Falls back to getRemoteAddr when X-Forwarded-For is absent")
+            public void fallsBackToRemoteAddr() {
+                RegisterRequest req = buildRegisterRequest();
+                UserDTO userDTO = UserDTO.builder().id(1L).email(TEST_EMAIL).build();
+                when(request.getHeader("X-Forwarded-For")).thenReturn(null);
+                when(request.getRemoteAddr()).thenReturn("192.0.2.1");
+                when(userService.registerUser(any(RegisterRequest.class))).thenReturn(userDTO);
+                authController.registerUser(req, request);
+                verify(rateLimitService).checkRegister("192.0.2.1");
+            }
+
+            @Test
+            @DisplayName("Falls back to getRemoteAddr when X-Forwarded-For is blank")
+            public void fallsBackWhenForwardedForIsBlank() {
+                RegisterRequest req = buildRegisterRequest();
+                UserDTO userDTO = UserDTO.builder().id(1L).email(TEST_EMAIL).build();
+                when(request.getHeader("X-Forwarded-For")).thenReturn("  ");
+                when(request.getRemoteAddr()).thenReturn("192.0.2.2");
+                when(userService.registerUser(any(RegisterRequest.class))).thenReturn(userDTO);
+                authController.registerUser(req, request);
+                verify(rateLimitService).checkRegister("192.0.2.2");
+            }
+
+            @Test
+            @DisplayName("Returns 'unknown' when neither source provides a value")
+            public void returnsUnknownWhenBothSourcesNull() {
+                RegisterRequest req = buildRegisterRequest();
+                UserDTO userDTO = UserDTO.builder().id(1L).email(TEST_EMAIL).build();
+                when(request.getHeader("X-Forwarded-For")).thenReturn(null);
+                when(request.getRemoteAddr()).thenReturn(null);
+                when(userService.registerUser(any(RegisterRequest.class))).thenReturn(userDTO);
+                authController.registerUser(req, request);
+                verify(rateLimitService).checkRegister("unknown");
+            }
         }
     }
 
@@ -274,7 +358,7 @@ public class AuthControllerTests {
         @Test
         @DisplayName("Returns 200 OK with token and user info on success")
         public void success() {
-            LoginRequest request = new LoginRequest("test@example.com", "Password123!");
+            LoginRequest loginRequest = new LoginRequest("test@example.com", "Password123!");
             LoginResponse response = LoginResponse.builder()
                     .accessToken("access.token")
                     .refreshToken("refresh.token")
@@ -284,25 +368,39 @@ public class AuthControllerTests {
                     .roles(Set.of("ROLE_USER"))
                     .build();
             HttpServletResponse mockResponse = mock(HttpServletResponse.class);
-            when(authService.login(request, mockResponse)).thenReturn(response);
-            ResponseEntity<ResponseDTO<LoginResponse>> result = authController.login(request, mockResponse);
+            when(authService.login(loginRequest, mockResponse)).thenReturn(response);
+            ResponseEntity<ResponseDTO<LoginResponse>> result = authController.login(loginRequest, request, mockResponse);
             assertThat(result.getStatusCode()).isEqualTo(HttpStatus.OK);
             assertThat(result.getBody()).isNotNull();
             assertThat(result.getBody().getMessage()).isEqualTo("Login successful");
             assertThat(result.getBody().getData()).isEqualTo(response);
-            verify(authService).login(request, mockResponse);
+            verify(rateLimitService).checkLogin(eq("test@example.com"), any(String.class));
+            verify(authService).login(loginRequest, mockResponse);
         }
 
         @Test
         @DisplayName("Propagates BadCredentialsException")
         public void badCredentials() {
-            LoginRequest request = new LoginRequest("test@example.com", "wrong");
+            LoginRequest loginRequest = new LoginRequest("test@example.com", "wrong");
             HttpServletResponse mockResponse = mock(HttpServletResponse.class);
-            when(authService.login(request, mockResponse)).thenThrow(new BadCredentialsException("Invalid credentials"));
-            assertThatThrownBy(() -> authController.login(request, mockResponse))
+            when(authService.login(loginRequest, mockResponse)).thenThrow(new BadCredentialsException("Invalid credentials"));
+            assertThatThrownBy(() -> authController.login(loginRequest, request, mockResponse))
                     .isInstanceOf(BadCredentialsException.class)
                     .hasMessageContaining("Invalid credentials");
-            verify(authService).login(request, mockResponse);
+            verify(rateLimitService).checkLogin(eq("test@example.com"), any(String.class));
+            verify(authService).login(loginRequest, mockResponse);
+        }
+
+        @Test
+        @DisplayName("Propagates RateLimitExceededException without calling AuthService")
+        public void rateLimitExceeded() {
+            LoginRequest loginRequest = new LoginRequest("test@example.com", "Password123!");
+            HttpServletResponse mockResponse = mock(HttpServletResponse.class);
+            doThrow(new RateLimitExceededException("Too many attempts", 60L))
+                    .when(rateLimitService).checkLogin(any(String.class), any(String.class));
+            assertThatThrownBy(() -> authController.login(loginRequest, request, mockResponse))
+                    .isInstanceOf(RateLimitExceededException.class);
+            verifyNoInteractions(authService);
         }
     }
 

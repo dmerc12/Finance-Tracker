@@ -2,10 +2,12 @@ package com.dmerc12.api.controller;
 
 import com.dmerc12.api.dto.*;
 import com.dmerc12.api.exception.InvalidTokenException;
+import com.dmerc12.api.exception.RateLimitExceededException;
 import com.dmerc12.api.exception.ResourceNotFoundException;
 import com.dmerc12.api.security.JwtAuthenticationEntryPoint;
 import com.dmerc12.api.security.SecurityService;
 import com.dmerc12.api.service.AuthService;
+import com.dmerc12.api.service.RateLimitService;
 import com.dmerc12.api.service.UserService;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -62,6 +64,7 @@ public class AuthController {
     private final AuthService authService;
     private final UserService userService;
     private final SecurityService securityService;
+    private final RateLimitService rateLimitService;
 
     /**
      * Returns the currently authenticated user's profile.
@@ -90,12 +93,18 @@ public class AuthController {
      * Registers a new user.
      * <p>Accepts a validated {@link RegisterRequest}, creates a user account with the
      * default {@code ROLE_USER}, and returns the created user details.
+     *<p>Rate limited per client IP to prevent automated account creation.
      *
      * @param request the registration DTO (validated via {@code @Valid})
+     * @param httpRequest the HTTP request (used to resolve the client IP)
      * @return {@code 201 Created} with a success response containing the user DTO
+     * @throws RateLimitExceededException if the caller has exceeded the registration rate limit
      */
     @PostMapping("/register")
-    public ResponseEntity<ResponseDTO<UserDTO>> registerUser(@Valid @RequestBody RegisterRequest request) {
+    public ResponseEntity<ResponseDTO<UserDTO>> registerUser(
+            @Valid @RequestBody RegisterRequest request,
+            HttpServletRequest httpRequest) {
+        rateLimitService.checkRegister(extractClientIp(httpRequest));
         log.debug("Registering new user with email: {}", request.getEmail());
         UserDTO user = userService.registerUser(request);
         log.info("Created user with ID: {} and email: {}", user.getId(), user.getEmail());
@@ -177,6 +186,54 @@ public class AuthController {
     }
 
     /**
+     * Authenticates a user and returns a JWT access token.
+     * <p>Rate limited per email and per client IP.
+     * Bad credentials fail fast with 401;
+     * callers that have exhausted either limit receive 429
+     * with a {@code Retry-After} hint before their password is ever checked.
+     *
+     * @param request the login request (email + password)
+     * @param httpRequest the HTTP request (used to resolve the client IP)
+     * @param response response to attach tokens to secure HTTP-only cookies
+     * @return a {@link LoginResponse} containing the tokens and user details
+     * @throws RateLimitExceededException if either limit is exhausted
+     */
+    @PostMapping("/login")
+    public ResponseEntity<ResponseDTO<LoginResponse>> login(
+            @Valid @RequestBody LoginRequest request,
+            HttpServletRequest httpRequest,
+            HttpServletResponse response) {
+        rateLimitService.checkLogin(request.getEmail(), extractClientIp(httpRequest));
+        log.debug("Login request received for email: {}", request.getEmail());
+        LoginResponse loginData = authService.login(request, response);
+        log.info("User logged in: {}", loginData.getEmail());
+        return ResponseEntity.ok(ResponseDTO.success("Login successful", loginData));
+    }
+
+    /**
+     * Logs out the current user.
+     *
+     * <p>Blacklists the access and refresh tokens (when present and still valid)
+     * so they cannot be replayed, then clears the auth cookies.
+     * Idempotent: anonymous callers and callers with only one valid token still receive
+     * a 200, with cookies cleared.
+     *
+     * @param request the HTTP request (cookies are read from here)
+     * @param response the HTTP response on which cookies are cleared
+     * @return {@code 200 OK} with a success message
+     */
+    @PostMapping("/logout")
+    public ResponseEntity<ResponseDTO<Void>> logout(HttpServletRequest request, HttpServletResponse response) {
+        TokenPair tokens = TokenPair.builder()
+                .accessToken(extractToken(request, "access_token"))
+                .refreshToken(extractToken(request, "refresh_token"))
+                .build();
+        authService.logout(tokens, response);
+        log.info("User logged out");
+        return ResponseEntity.ok(ResponseDTO.success("Logged out successfully", null));
+    }
+
+    /**
      * Extracts a JWT from the request.
      * The {@code Authorization: Bearer} header takes precedence over the cookie of the same logical type.
      *
@@ -209,41 +266,22 @@ public class AuthController {
     }
 
     /**
-     * Authenticates a user and returns a JWT access token.
+     * Resolves the caller's IP address from the request.
+     * <p>Prefers the first entry of {@code X-Forwarded-For} when present,
+     * otherwise falls back to {@code getRemoteAddr()}.
+     * The forwarded header is only trustworthy when the app sits behind a proxy that sets it
+     * and strips client-supplied values.
+     * In the current single-instance Docker deployment there is no proxy, and {@code getRemoteAddr()} is correct.
      *
-     * @param request the login request (email + password)
-     * @param response response to attach tokens to secure HTTP-only cookies
-     * @return a {@link LoginResponse} containing the tokens and user details
+     * @param request the HTTP request
+     * @return the resolved IP address, or {@code "unknown"} if neither source produced a value
      */
-    @PostMapping("/login")
-    public ResponseEntity<ResponseDTO<LoginResponse>> login(@Valid @RequestBody LoginRequest request,
-                                                            HttpServletResponse response) {
-        log.debug("Login request received for email: {}", request.getEmail());
-        LoginResponse loginData = authService.login(request, response);
-        log.info("User logged in: {}", loginData.getEmail());
-        return ResponseEntity.ok(ResponseDTO.success("Login successful", loginData));
-    }
-
-    /**
-     * Logs out the current user.
-     *
-     * <p>Blacklists the access and refresh tokens (when present and still valid)
-     * so they cannot be replayed, then clears the auth cookies.
-     * Idempotent: anonymous callers and callers with only one valid token still receive
-     * a 200, with cookies cleared.
-     *
-     * @param request the HTTP request (cookies are read from here)
-     * @param response the HTTP response on which cookies are cleared
-     * @return {@code 200 OK} with a success message
-     */
-    @PostMapping("/logout")
-    public ResponseEntity<ResponseDTO<Void>> logout(HttpServletRequest request, HttpServletResponse response) {
-        TokenPair tokens = TokenPair.builder()
-                .accessToken(extractToken(request, "access_token"))
-                .refreshToken(extractToken(request, "refresh_token"))
-                .build();
-        authService.logout(tokens, response);
-        log.info("User logged out");
-        return ResponseEntity.ok(ResponseDTO.success("Logged out successfully", null));
+    private String extractClientIp(HttpServletRequest request) {
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) {
+            return forwarded.split(",")[0].trim();
+        }
+        String remote = request.getRemoteAddr();
+        return remote != null ? remote : "unknown";
     }
 }
