@@ -8,8 +8,16 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Nested;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.boot.actuate.audit.AuditEventRepository;
 
 import static org.assertj.core.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 
 /**
  * Unit tests for {@link RateLimitService}.
@@ -17,8 +25,12 @@ import static org.assertj.core.api.Assertions.*;
  * <p>Verifies per-email and per-IP bucket consumption, rate-limit breaches, key isolation,
  * and the {@code reset} escape hatch used by integration tests.
  */
+@ExtendWith(MockitoExtension.class)
 @DisplayName("Rate Limit Service Unit Tests")
 public class RateLimitServiceTests {
+
+    @Mock
+    private AuditEventRepository auditEventRepository;
 
     private RateLimitService service;
 
@@ -31,7 +43,7 @@ public class RateLimitServiceTests {
         properties.getLogin().setIpWindowSeconds(60);
         properties.getRegister().setIpCapacity(2);
         properties.getRegister().setIpWindowSeconds(60);
-        service = new RateLimitServiceImpl(properties);
+        service = new RateLimitServiceImpl(properties, auditEventRepository);
     }
 
     @Nested
@@ -59,6 +71,9 @@ public class RateLimitServiceTests {
                 assertThatThrownBy(() -> service.checkLogin("user@example.com", "1.1.1.1"))
                         .isInstanceOf(RateLimitExceededException.class)
                         .hasMessageContaining("login attempts for this email");
+                verify(auditEventRepository).add(argThat(event -> "RATE_LIMIT_EXCEEDED".equals(event.getType())
+                        && "user@example.com".equals(event.getPrincipal())
+                        && "email".equals(event.getData().get("limitType"))));
             }
 
             @Test
@@ -129,6 +144,17 @@ public class RateLimitServiceTests {
                         .hasMessageContaining("login attempts for this IP");
             }
         }
+
+        @Test
+        @DisplayName("A failing audit write does not prevent the rate limit exception")
+        public void auditFailureDoesNotBreakTheLimit() {
+            doThrow(new RuntimeException("DB down")).when(auditEventRepository).add(any());
+            for (int i = 0; i < 3; i++) {
+                service.checkLogin("user@example.com", "1.1.1.1");
+            }
+            assertThatThrownBy(() -> service.checkLogin("user@example.com", "1.1.1.1"))
+                    .isInstanceOf(RateLimitExceededException.class);
+        }
     }
 
     @Nested
@@ -150,6 +176,9 @@ public class RateLimitServiceTests {
             assertThatThrownBy(() -> service.checkRegister("1.1.1.1"))
                     .isInstanceOf(RateLimitExceededException.class)
                     .hasMessageContaining("register attempts for this IP");
+            verify(auditEventRepository).add(argThat(event -> "RATE_LIMIT_EXCEEDED".equals(event.getType())
+                    && "anonymous" .equals(event.getPrincipal())
+                    && "ip".equals(event.getData().get("limitType"))));
         }
 
         @Test

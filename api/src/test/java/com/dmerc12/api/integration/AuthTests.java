@@ -2,8 +2,10 @@ package com.dmerc12.api.integration;
 
 import com.dmerc12.api.controller.AuthController;
 import com.dmerc12.api.dto.*;
+import com.dmerc12.api.entity.AuditLog;
 import com.dmerc12.api.entity.Role;
 import com.dmerc12.api.entity.User;
+import com.dmerc12.api.repository.AuditLogRepository;
 import com.dmerc12.api.repository.UserRepository;
 import com.dmerc12.api.security.CustomUserDetailsService;
 import com.dmerc12.api.security.JwtService;
@@ -25,8 +27,10 @@ import org.springframework.security.test.context.support.WithMockUser;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
+import java.util.List;
 import java.util.Set;
 
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.anyOf;
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.matchesPattern;
@@ -90,6 +94,9 @@ public class AuthTests  extends BaseIntegrationTest {
     @Autowired
     private CustomUserDetailsService userDetailsService;
 
+    @Autowired
+    private AuditLogRepository auditLogRepository;
+
     private User user;
 
     private static final String BASE_URL = "/api/auth";
@@ -99,6 +106,7 @@ public class AuthTests  extends BaseIntegrationTest {
         tokenBlacklist.clear();
         rateLimitService.reset();
         userRepository.deleteAll();
+        auditLogRepository.deleteAll();
         user = User.builder()
                 .email("owner@example.com")
                 .firstName("Bill")
@@ -1431,6 +1439,78 @@ public class AuthTests  extends BaseIntegrationTest {
                             .value(containsString("register attempts for this IP")))
                     .andExpect(jsonPath("$.error").value("Too Many Requests"))
                     .andExpect(jsonPath("$.status").value(429));
+        }
+    }
+
+    @Nested
+    @DisplayName("Audit logging")
+    class AuditLoggingTests {
+        private String loginJson(String password) throws Exception {
+            return new ObjectMapper().writeValueAsString(new LoginRequest("owner@example.com", password));
+        }
+
+        @Test
+        @DisplayName("Successful login writes an AUTHENTICATION_SUCCESS audit row")
+        public void loginSuccessWritesAuditRow() throws Exception {
+            auditLogRepository.deleteAll();
+            assertThat(auditLogRepository.findAll()).isEmpty();
+            mockMvc.perform(post(BASE_URL + "/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(loginJson("OldPass123!")))
+                    .andExpect(status().isOk());
+            List<AuditLog> logs = auditLogRepository.findAll();
+            assertThat(logs).hasSize(1);
+            AuditLog row = logs.getFirst();
+            assertThat(row.getEventType()).isEqualTo("AUTHENTICATION_SUCCESS");
+            assertThat(row.getPrincipal()).isEqualTo("owner@example.com");
+            assertThat(row.getTimestamp()).isNotNull();
+            assertThat(row.getIpAddress()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("Wrong password writes an AUTHENTICATION_FAILURE row with the attempted email")
+        public void loginFailureWritesAuditRow() throws Exception {
+            auditLogRepository.deleteAll();
+            assertThat(auditLogRepository.findAll()).isEmpty();
+            mockMvc.perform(post(BASE_URL + "/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(loginJson("WrongPass!")))
+                    .andExpect(status().isUnauthorized());
+            List<AuditLog> logs = auditLogRepository.findAll();
+            assertThat(logs).hasSize(1);
+            AuditLog row = logs.getFirst();
+            assertThat(row.getEventType()).isEqualTo("AUTHENTICATION_FAILURE");
+            assertThat(row.getPrincipal()).isEqualTo("owner@example.com");
+            assertThat(row.getTimestamp()).isNotNull();
+            assertThat(row.getIpAddress()).isNotNull();
+        }
+
+        @Test
+        @DisplayName("Rate-limited login writes a RATE_LIMIT_EXCEEDED audit row")
+        public void rateLimitedLoginWritesAuditRow() throws Exception {
+            auditLogRepository.deleteAll();
+            assertThat(auditLogRepository.findAll()).isEmpty();
+            for(int i = 0; i < 5; i++) {
+                mockMvc.perform(post(BASE_URL + "/login")
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(loginJson("WrongPass!")))
+                        .andExpect(status().isUnauthorized());
+            }
+            mockMvc.perform(post(BASE_URL + "/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(loginJson("WrongPass!")))
+                    .andExpect(status().isTooManyRequests());
+            List<AuditLog> logs = auditLogRepository.findAll();
+            assertThat(logs).hasSize(6);
+            long failureCount = logs.stream().filter(l -> "AUTHENTICATION_FAILURE".equals(l.getEventType())).count();
+            long rateLimitCount = logs.stream().filter(l -> "RATE_LIMIT_EXCEEDED".equals(l.getEventType())).count();
+            assertThat(failureCount).isEqualTo(5);
+            assertThat(rateLimitCount).isEqualTo(1);
+            AuditLog rateLimitRow = logs.stream()
+                    .filter(l -> "RATE_LIMIT_EXCEEDED".equals(l.getEventType()))
+                    .findFirst()
+                    .orElseThrow();
+            assertThat(rateLimitRow.getPrincipal()).isEqualTo("owner@example.com");
         }
     }
 }

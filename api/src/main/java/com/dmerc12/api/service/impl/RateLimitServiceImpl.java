@@ -7,6 +7,8 @@ import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.boot.actuate.audit.AuditEvent;
+import org.springframework.boot.actuate.audit.AuditEventRepository;
 import org.springframework.stereotype.Service;
 
 import java.time.Duration;
@@ -24,6 +26,7 @@ public class RateLimitServiceImpl implements RateLimitService {
     private static final Logger log = LoggerFactory.getLogger(RateLimitServiceImpl.class);
 
     private final RateLimitProperties properties;
+    private final AuditEventRepository auditEventRepository;
     private final Map<String, Bucket> loginByEmail = new ConcurrentHashMap<>();
     private final Map<String, Bucket> loginByIp = new ConcurrentHashMap<>();
     private final Map<String, Bucket> registerByIp = new ConcurrentHashMap<>();
@@ -33,8 +36,9 @@ public class RateLimitServiceImpl implements RateLimitService {
      *
      * @param properties the configured capacities and windows
      */
-    public RateLimitServiceImpl(RateLimitProperties properties) {
+    public RateLimitServiceImpl(RateLimitProperties properties, AuditEventRepository auditEventRepository) {
         this.properties = properties;
+        this.auditEventRepository = auditEventRepository;
     }
 
     /**
@@ -43,19 +47,20 @@ public class RateLimitServiceImpl implements RateLimitService {
     @Override
     public void checkLogin(String email, String ipAddress) {
         RateLimitProperties.Login login = properties.getLogin();
+        String normalized = normalizeEmail(email);
         consume(
                 loginByEmail,
-                normalizeEmail(email),
+                normalized,
                 login.getEmailCapacity(),
                 login.getEmailWindowSeconds(),
-                "login attempts for this email"
+                "login attempts for this email", normalized, "email"
         );
         consume(
                 loginByIp,
                 ipAddress,
                 login.getIpCapacity(),
                 login.getIpWindowSeconds(),
-                "login attempts for this IP"
+                "login attempts for this IP", "anonymous", "ip"
         );
     }
 
@@ -70,7 +75,7 @@ public class RateLimitServiceImpl implements RateLimitService {
                 ipAddress,
                 register.getIpCapacity(),
                 register.getIpWindowSeconds(),
-                "register attempts for this IP"
+                "register attempts for this IP", "anonymous", "ip"
         );
     }
 
@@ -85,7 +90,7 @@ public class RateLimitServiceImpl implements RateLimitService {
     }
 
     private void consume(Map<String, Bucket> buckets, String key, int capacity,
-                         long windowSeconds, String description) {
+                         long windowSeconds, String description, String auditPrincipal, String limitType) {
         Bucket bucket = buckets.computeIfAbsent(key, k -> newBucket(capacity, windowSeconds));
         ConsumptionProbe probe = bucket.tryConsumeAndReturnRemaining(1);
         if (!probe.isConsumed()) {
@@ -94,8 +99,17 @@ public class RateLimitServiceImpl implements RateLimitService {
                     TimeUnit.NANOSECONDS.toSeconds(probe.getNanosToWaitForRefill())
             );
             log.warn("Rate limit exceeded: {} (key={})", description, maskKey(key));
+            recordRateLimitAudit(auditPrincipal, description, limitType);
             throw new RateLimitExceededException("Too many " + description +
                     ". Please try again later.", retryAfterSeconds);
+        }
+    }
+
+    private void recordRateLimitAudit(String principal, String description, String limitType) {
+        try {
+            auditEventRepository.add(new AuditEvent(principal, "RATE_LIMIT_EXCEEDED", Map.of("reason", description, "limitType", limitType)));
+        } catch (Exception e) {
+            log.error("Failed to record RATE_LIMIT_EXCEEDED audit event", e);
         }
     }
 
