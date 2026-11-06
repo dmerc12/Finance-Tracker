@@ -92,16 +92,30 @@ const refreshAccessToken = async (): Promise<void> => {
 
 /**
  * Final error handler for responses the interceptor cannot recover.
- * <p>Handles:
+ * <p>Logs at the severity appropriate to the failure mode; never swallows the rejection.
+ * {@link getErrorData} is what callers use to build a user-facing message -
+ * this function exists for observability only.
  * <ul>
- *     <li><b>401 Unauthorized</b> - logs a warning; the caller receives the rejection</li>
- *     <li><b>403 Forbidden</b> - passes through unchanged</li>
- *     <li>Everything else - passes through unchanged</li>
+ *     <li><b>401</b> - warn (auth event, already wired to refresh flow)</li>
+ *     <li><b>403</b> - warn (permission failure)</li>
+ *     <li><b>5xx</b> - error (server fault, actionable for monitoring)</li>
+ *     <li><b>Timeout / network</b> - warn</li>
  * </ul>
  */
 export const errorHandler = (error: unknown): Promise<never> => {
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
-        console.warn('Unauthorized - user needs to log in again.');
+    if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        if (status === 401) {
+            console.warn('Unauthorized - user needs to log in again.');
+        } else if (status === 403) {
+            console.warn('Forbidden - user lacks permission for this resource.');
+        } else if (status !== undefined && status >= 500) {
+            console.error('Server error', status, error.response?.data);
+        } else if (error.code === 'ECONNABORTED') {
+            console.warn('Request timed out.');
+        } else if (error.code === 'ERR_NETWORK') {
+            console.warn('Network error - unable to reach server.');
+        }
     }
     return Promise.reject(error);
 };

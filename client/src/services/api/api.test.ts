@@ -44,12 +44,6 @@ describe('api', () => {
             );
         });
 
-        it('just rejects for non-401 errors (403)', async () => {
-            const error = makeAxiosError(403);
-            await expect(errorHandler(error)).rejects.toEqual(error);
-            expect(consoleWarnSpy).not.toHaveBeenCalled();
-        });
-
         it('just rejects for non-Axios errors', async () => {
             const error = new Error('Network error');
             await expect(errorHandler(error)).rejects.toEqual(error);
@@ -58,6 +52,41 @@ describe('api', () => {
 
         it('should not warn when a non-Axios object happens to have status 401', async () => {
             const error = { response: { status: 401 } };
+            await expect(errorHandler(error)).rejects.toEqual(error);
+            expect(consoleWarnSpy).not.toHaveBeenCalled();
+        });
+
+        it('warns for 403 errors', async () => {
+            const error = makeAxiosError(403);
+            await expect(errorHandler(error)).rejects.toEqual(error);
+            expect(consoleWarnSpy).toHaveBeenCalledWith(
+                'Forbidden - user lacks permission for this resource.'
+            );
+        });
+
+        it('logs at error level for 5xx', async () => {
+            const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+            const error = makeAxiosError(500);
+            await expect(errorHandler(error)).rejects.toEqual(error);
+            expect(consoleErrorSpy).toHaveBeenCalled();
+            expect(consoleWarnSpy).not.toHaveBeenCalled();
+            consoleErrorSpy.mockRestore();
+        });
+
+        it('warns for timeout errors', async () => {
+            const error = new AxiosError('timeout', 'ECONNABORTED');
+            await expect(errorHandler(error)).rejects.toEqual(error);
+            expect(consoleWarnSpy).toHaveBeenCalledWith('Request timed out.');
+        });
+
+        it('warns for network errors', async () => {
+            const error = new AxiosError('Network Error', 'ERR_NETWORK');
+            await expect(errorHandler(error)).rejects.toEqual(error);
+            expect(consoleWarnSpy).toHaveBeenCalledWith('Network error - unable to reach server.');
+        });
+
+        it('does not log for non-Axios errors', async () => {
+            const error = new Error('something');
             await expect(errorHandler(error)).rejects.toEqual(error);
             expect(consoleWarnSpy).not.toHaveBeenCalled();
         });
