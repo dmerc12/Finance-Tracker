@@ -51,6 +51,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  *     <li>Current user profile - success, caller isolation, unauthenticated</li>
  *     <li>Password change - success, ownership check, and validation errors</li>
  *     <li>Admin password reset - success and authorization</li>
+ *     <li>Rate limiting - per-email and per-IP buckets, Retry-After header, bucket independence</li>
+ *     <li>Audit logging - AUTHENTICATION_SUCCESS, AUTHENTICATION_FAILURE, RATE_LIMIT_EXCEEDED rows persisted end-to-end</li>
+ *     <li>Security - brute force lockout under IP rotation, SQL injection defenses, XSS round-trip behavior</li>
  * </ul>
  *
  * @see UserDTO
@@ -1511,6 +1514,89 @@ public class AuthTests  extends BaseIntegrationTest {
                     .findFirst()
                     .orElseThrow();
             assertThat(rateLimitRow.getPrincipal()).isEqualTo("owner@example.com");
+        }
+    }
+
+    @Nested
+    @DisplayName("Security - brute force and injection")
+    class SecurityVulnerabilityTests {
+        private String loginJson(String email, String password) throws Exception {
+            return new ObjectMapper().writeValueAsString(new LoginRequest(email, password));
+        }
+
+        @Test
+        @DisplayName("Brute force: per-email lockout trips despite IP rotation")
+        public void bruteForceLockoutAcrossDistributedIps() throws Exception {
+            for (int i = 0; i < 5; i++) {
+                mockMvc.perform(post(BASE_URL + "/login")
+                                .header("X-Forwarded-For", "10.0.0." + i)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content(loginJson("owner@example.com", "WrongPass!")))
+                        .andExpect(status().isUnauthorized());
+            }
+            mockMvc.perform(post(BASE_URL + "/login")
+                            .header("X-Forwarded-For", "10.0.0.99")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(loginJson("owner@example.com", "WrongPass!")))
+                    .andExpect(status().isTooManyRequests())
+                    .andExpect(jsonPath("$.error").value("Too Many Requests"))
+                    .andExpect(jsonPath("$.message").value(containsString("login attempts for this email")));
+        }
+
+        @Test
+        @DisplayName("SQL injection in login email is rejected by @Email before any DB access")
+        public void sqlInjectionInLoginEmailIsRejected() throws Exception {
+            mockMvc.perform(post(BASE_URL + "/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(loginJson("' OR '1'='1", "WrongPass!")))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value("Validation Failed"))
+                    .andExpect(jsonPath("$.fieldErrors.email").value("Invalid email format"));
+        }
+
+        @Test
+        @DisplayName("SQL injection in login password fails auth cleanly with 401, never 500")
+        public void sqlInjectionInLoginPasswordFailsAuthCleanly() throws Exception {
+            mockMvc.perform(post(BASE_URL + "/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(loginJson("owner@example.com", "' OR '1'='1")))
+                    .andExpect(status().isUnauthorized())
+                    .andExpect(jsonPath("$.error").value("Unauthorized"))
+                    .andExpect(jsonPath("$.message").value("Invalid email or password"));
+        }
+
+        @Test
+        @DisplayName("SQL injection in registration is rejected by email and password validation")
+        public void sqlInjectionInRegistrationIsRejected() throws Exception {
+            RegisterRequest request = new RegisterRequest();
+            request.setEmail("' OR '1'='1");
+            request.setPassword("' OR '1'='1");
+            request.setPasswordConfirm("' OR '1'='1");
+            request.setFirstName("Attacker");
+            request.setLastName("Test");
+            mockMvc.perform(post(BASE_URL + "/register")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(new ObjectMapper().writeValueAsString(request)))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.error").value("Validation Failed"))
+                    .andExpect(jsonPath("$.fieldErrors.email").value("Invalid email format"));
+        }
+
+        @Test
+        @DisplayName("HTML in first name is stored verbatim (no server-side sanitization; client escapes)")
+        public void htmlInFirstNameIsStoredVerbatim() throws Exception {
+            String xssPayload = "<script>alert(1)</script>";
+            RegisterRequest request = new RegisterRequest();
+            request.setEmail("xss-test-" + System.currentTimeMillis() + "@example.com");
+            request.setPassword("Password123!");
+            request.setPasswordConfirm("Password123!");
+            request.setFirstName(xssPayload);
+            request.setLastName("Doe");
+            mockMvc.perform(post(BASE_URL + "/register")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(new ObjectMapper().writeValueAsString(request)))
+                    .andExpect(status().isCreated())
+                    .andExpect(jsonPath("$.data.firstName").value(xssPayload));
         }
     }
 }
