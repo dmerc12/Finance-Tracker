@@ -29,6 +29,7 @@ import java.util.Arrays;
  * REST controller for authentication and user account management endpoints.
  * <p>Provides endpoints for:
  * <ul>
+ *     <li><b>CSRF:</b> {@code GET /api/auth/csrf}</li>
  *     <li><b>Login:</b> {@code POST /api/auth/login}</li>
  *     <li><b>Logout:</b> {@code POST /api/auth/logout}</li>
  *     <li><b>Token refresh:</b> {@code POST /api/auth/refresh}</li>
@@ -65,6 +66,22 @@ public class AuthController {
     private final UserService userService;
     private final SecurityService securityService;
     private final RateLimitService rateLimitService;
+
+    /**
+     * Establishes the {@code XSRF-TOKEN} cookie.
+     * <p>Called once by the frontend on bootstrap, before any state-changing request.
+     * The cookie itself is written by Spring Security's {@code CsrfFilter};
+     * this handler exists so the SPA has a stable, explicit URL to hit at startup rather than depending on an
+     * incidental GET.
+     * Without it, a fresh browser session would reject the first POST (login or register) with 403.
+     *
+     * @return {@code 200 OK} with a success message; the useful output is in the
+     * {@code Set-Cookie} header on the response
+     */
+    @GetMapping("/csrf")
+    public ResponseEntity<ResponseDTO<Void>> csrf() {
+        return ResponseEntity.ok(ResponseDTO.success("CSRF cookie established", null));
+    }
 
     /**
      * Returns the currently authenticated user's profile.

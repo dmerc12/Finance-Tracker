@@ -29,6 +29,12 @@ vi.mock('./layouts', () => ({
         </div>
     ),
 }));
+vi.mock('./services', () => ({
+    authService: {
+        getCurrentUser: vi.fn().mockResolvedValue(null),
+    },
+    ensureCsrfCookie: vi.fn().mockResolvedValue(undefined),
+}));
 
 const regularUser: UserDTO = {
     id: 1,

@@ -5,8 +5,7 @@ import com.dmerc12.api.exception.RateLimitExceededException;
 import com.dmerc12.api.service.RateLimitService;
 import io.github.bucket4j.Bucket;
 import io.github.bucket4j.ConsumptionProbe;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.actuate.audit.AuditEvent;
 import org.springframework.boot.actuate.audit.AuditEventRepository;
 import org.springframework.stereotype.Service;
@@ -20,10 +19,9 @@ import java.util.concurrent.TimeUnit;
 /**
  * Implementation of {@link RateLimitService}.
  */
+@Slf4j
 @Service
 public class RateLimitServiceImpl implements RateLimitService {
-
-    private static final Logger log = LoggerFactory.getLogger(RateLimitServiceImpl.class);
 
     private final RateLimitProperties properties;
     private final AuditEventRepository auditEventRepository;
@@ -35,6 +33,7 @@ public class RateLimitServiceImpl implements RateLimitService {
      * Constructs a new rate limit service.
      *
      * @param properties the configured capacities and windows
+     * @param auditEventRepository the repository used to record {@code RATE_LIMIT_EXCEEDED} events
      */
     public RateLimitServiceImpl(RateLimitProperties properties, AuditEventRepository auditEventRepository) {
         this.properties = properties;
@@ -107,7 +106,8 @@ public class RateLimitServiceImpl implements RateLimitService {
 
     private void recordRateLimitAudit(String principal, String description, String limitType) {
         try {
-            auditEventRepository.add(new AuditEvent(principal, "RATE_LIMIT_EXCEEDED", Map.of("reason", description, "limitType", limitType)));
+            auditEventRepository.add(new AuditEvent(principal, "RATE_LIMIT_EXCEEDED",
+                    Map.of("reason", description, "limitType", limitType)));
         } catch (Exception e) {
             log.error("Failed to record RATE_LIMIT_EXCEEDED audit event", e);
         }

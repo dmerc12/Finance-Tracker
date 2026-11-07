@@ -1,16 +1,17 @@
 import userReducer from '../../store/slices/userSlice/userSlice';
 import authReducer from '../../store/slices/authSlice/authSlice';
+import { authService, ensureCsrfCookie } from '../../services';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, act } from '@testing-library/react';
 import SessionBootstrap from './SessionBootstrap';
 import { configureStore } from '@reduxjs/toolkit';
-import { authService } from '../../services';
 import { Provider } from 'react-redux';
 
 vi.mock('../../services', () => ({
     authService: {
         getCurrentUser: vi.fn(),
     },
+    ensureCsrfCookie: vi.fn().mockResolvedValue(undefined),
 }));
 
 let capturedHandler: ((event: { type: string }) => void) | null = null;
@@ -28,6 +29,7 @@ vi.mock('../../utils', async () => {
 });
 
 const mockedAuthService = vi.mocked(authService);
+const mockedEnsureCsrfCookie = vi.mocked(ensureCsrfCookie);
 
 const seededUser = {
     id: 1,
@@ -92,6 +94,83 @@ describe('SessionBootstrap', () => {
             </Provider>
         );
         expect(screen.getByText('child')).toBeInTheDocument();
+    });
+
+    describe('CSRF priming', () => {
+        it('calls ensureCsrfCookie on mount', () => {
+            const store = configureStore({ reducer: { user: userReducer } });
+            render(
+                <Provider store={store}>
+                    <SessionBootstrap>
+                        <div>child</div>
+                    </SessionBootstrap>
+                </Provider>
+            );
+            expect(mockedEnsureCsrfCookie).toHaveBeenCalledTimes(1);
+        });
+
+        it('calls ensureCsrfCookie even when the user session is already initialized', () => {
+            const store = configureStore({
+                reducer: { user: userReducer },
+                preloadedState: {
+                    user: {
+                        currentUser: seededUser,
+                        isLoading: false,
+                        initialized: true,
+                        error: { message: null, fieldErrors: null },
+                    },
+                },
+            });
+            render(
+                <Provider store={store}>
+                    <SessionBootstrap>
+                        <div>child</div>
+                    </SessionBootstrap>
+                </Provider>
+            );
+            expect(mockedEnsureCsrfCookie).toHaveBeenCalledTimes(1);
+        });
+
+        it('logs but does not throw when CSRF priming fails', async () => {
+            const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+            mockedEnsureCsrfCookie.mockRejectedValueOnce(new Error('network down'));
+            const store = configureStore({ reducer: { user: userReducer } });
+            render(
+                <Provider store={store}>
+                    <SessionBootstrap>
+                        <div>child</div>
+                    </SessionBootstrap>
+                </Provider>
+            );
+            await act(async () => {
+                await Promise.resolve();
+            });
+            expect(consoleErrorSpy).toHaveBeenCalledWith(
+                'Failed to establish CSRF cookie',
+                expect.any(Error)
+            );
+            expect(screen.getByText('child')).toBeInTheDocument();
+            consoleErrorSpy.mockRestore();
+        });
+
+        it('does not re-prime on rerender', async () => {
+            const store = configureStore({ reducer: { user: userReducer } });
+            const { rerender } = render(
+                <Provider store={store}>
+                    <SessionBootstrap>
+                        <div>child</div>
+                    </SessionBootstrap>
+                </Provider>
+            );
+            rerender(
+                <Provider store={store}>
+                    <SessionBootstrap>
+                        <div>rerendered</div>
+                    </SessionBootstrap>
+                </Provider>
+            );
+            expect(mockedEnsureCsrfCookie).toHaveBeenCalledTimes(1);
+        });
     });
 
     describe('cross-tab logout', () => {

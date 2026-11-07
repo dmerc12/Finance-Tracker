@@ -64,6 +64,19 @@ public class AuthControllerTests {
     private static final String TEST_EMAIL = "test@example.com";
 
     @Nested
+    @DisplayName("GET /api/auth/csrf")
+    class CsrfTests {
+        @Test
+        @DisplayName("Returns 200 OK with a success envelope")
+        public void success() {
+            ResponseEntity<ResponseDTO<Void>> response = authController.csrf();
+            assertThat(response.getStatusCode()).isEqualTo(HttpStatus.OK);
+            assertThat(response.getBody()).isNotNull();
+            assertThat(response.getBody().getMessage()).isEqualTo("CSRF cookie established");
+        }
+    }
+
+    @Nested
     @DisplayName("GET /api/auth/me")
     class MeTests {
 

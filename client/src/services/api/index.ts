@@ -1,5 +1,5 @@
-import { setAuthFailureHandler } from './api';
+import { setAuthFailureHandler, ensureCsrfCookie } from './api';
 import api from './api';
 
-export { setAuthFailureHandler };
+export { setAuthFailureHandler, ensureCsrfCookie };
 export default api;

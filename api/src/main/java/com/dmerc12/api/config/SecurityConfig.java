@@ -1,5 +1,6 @@
 package com.dmerc12.api.config;
 
+import com.dmerc12.api.security.CsrfCookieFilter;
 import com.dmerc12.api.security.JwtAuthenticationEntryPoint;
 import com.dmerc12.api.security.JwtAuthenticationFilter;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,10 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfFilter;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRequestAttributeHandler;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -31,6 +36,11 @@ import java.util.List;
  *     <li>Endpoint authorization and access control</li>
  *     <li>JWT authentication filter and entry point</li>
  *     <li>Stateless session management</li>
+ *     <li>
+ *         CSRF protection via explicit {@link CookieCsrfTokenRepository}
+ *         and {@link CsrfCookieFilter} (not {@code CsrfConfigurer.spa()};
+ *         see {@link #filterChain(HttpSecurity)} for why)
+ *     </li>
  *     <li>CORS settings</li>
  * </ul>
  */
@@ -66,17 +76,15 @@ public class SecurityConfig {
      *     <li><b>/actuator/**</b> - Requires ADMIN role (logs, metrics, etc.)</li>
      *     <li><b>any other request</b> - Currently permitted (public)</li>
      * </ul>
-     * <p>CSRF protection is temporarily disabled to simplify development with stateless JWT authentication.
-     * It will be re-enabled in a future iteration.
-     * <p><b>Security Note:</b>
-     * In production, this configuration must be enhanced with:
-     * <ul>
-     *     <li>JWT authentication filter</li>
-     *     <li>UserDetailsService for authentication</li>
-     *     <li>PasswordEncoder bean (BCrypt) - already configured</li>
-     *     <li>Proper CORS configuration for frontend - already configured</li>
-     *     <li>Secure session management (stateless for JWT)</li>
-     * </ul>
+     * <p>CSRF is enabled with an explicit {@link CookieCsrfTokenRepository}, (JS-readable {@code XSRF-TOKEN} cookie)
+     * and a {@link CsrfTokenRequestAttributeHandler} that exposes the raw token on the request attribute so it
+     * can be compared against the {@code X-XSRF-TOKEN} header sent by the SPA.
+     * The {@link CsrfCookieFilter} runs after {@link CsrfFilter} and forces token materialization on every request,
+     * so the {@code XSRF-TOKEN} cookie is set on the primer GET rather than only on the first state-changing request.
+     * * <p>Note: {@code CsrfConfigurer::spa} was tried first but on Spring Security 7.0.x it overrides any
+     * explicitly configured {@code csrfTokenRepository}, leaving the default {@code HttpSessionCsrfTokenRepository}
+     * in place despite the {@code STATELESS} session policy.
+     * The manual composition above is the working alternative.
      *
      * @param http the {@link HttpSecurity} object to configure
      * @return the configured {@link SecurityFilterChain}
@@ -100,8 +108,14 @@ public class SecurityConfig {
         http
                 // Configure CORS
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
-                // Temporarily disabled for JWT
-                .csrf(AbstractHttpConfigurer::disable)
+                // CSRF enabled via the Spring Security 7 SPA preset:
+                // CookieCsrfTokenRepository.withHttpOnlyFalse() + SpaCsrfTokenRequestHandler.
+                // The token is written to XSRF-TOKEN (readable by JS) and expected back in X-XSRF-TOKEN
+                // on state-changing requests.
+                .csrf(csrf -> csrf
+                        .csrfTokenRepository(csrfTokenRepository())
+                        .csrfTokenRequestHandler(new CsrfTokenRequestAttributeHandler()))
+                .addFilterAfter(new CsrfCookieFilter(), CsrfFilter.class)
                 .sessionManagement(session ->
                         session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .exceptionHandling(ex -> ex.authenticationEntryPoint(authEntryPoint))
@@ -111,7 +125,8 @@ public class SecurityConfig {
                                 "/api/auth/register",
                                 "/api/auth/login",
                                 "/api/auth/refresh",
-                                "/api/auth/logout"
+                                "/api/auth/logout",
+                                "/api/auth/csrf"
                         ).permitAll()
                         // Authenticated by default
                         .anyRequest().authenticated()
@@ -185,5 +200,18 @@ public class SecurityConfig {
         FilterRegistrationBean<JwtAuthenticationFilter> registration = new FilterRegistrationBean<>(filter);
         registration.setEnabled(false);
         return registration;
+    }
+
+    /**
+     * Provides the CSRF token repository used by the security filter chain.
+     * <p>Extracted as a bean so tests can assert on the production repository
+     * without relying on real-HTTP cookie emission, which is unreliable when
+     * {@code @AutoConfigureMockMvc} substitutes the repository for the whole application context.
+     *
+     * @return the cookie-backed CSRF token repository
+     */
+    @Bean
+    public CsrfTokenRepository csrfTokenRepository() {
+        return CookieCsrfTokenRepository.withHttpOnlyFalse();
     }
 }

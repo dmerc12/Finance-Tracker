@@ -24,6 +24,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.test.context.support.WithMockUser;
+import org.springframework.security.web.csrf.CookieCsrfTokenRepository;
+import org.springframework.security.web.csrf.CsrfTokenRepository;
 import org.springframework.test.context.TestPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
 
@@ -44,15 +46,23 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
  * (via Testcontainers) with a fully loaded Spring context.
  * <p><b>Coverage:</b>
  * <ul>
+ *     <li>
+ *         CSRF - repository configuration assertion, primer reachability, 403 without token, 200 with token,
+ *         GET unaffected
+ *     </li>
  *     <li>User registration - success and validation failures</li>
  *     <li>Login - success, incorrect password, email nonexistent, blank email/password</li>
  *     <li>Logout - success, invalid or null tokens, idempotent</li>
- *     <li>Token refresh - success via cookie/header, missing/invalid refresh token, other token (access, non-bearer)</li>
+ *     <li>
+ *         Token refresh - success via cookie/header, missing/invalid refresh token, other token (access, non-bearer)
+ *     </li>
  *     <li>Current user profile - success, caller isolation, unauthenticated</li>
  *     <li>Password change - success, ownership check, and validation errors</li>
  *     <li>Admin password reset - success and authorization</li>
  *     <li>Rate limiting - per-email and per-IP buckets, Retry-After header, bucket independence</li>
- *     <li>Audit logging - AUTHENTICATION_SUCCESS, AUTHENTICATION_FAILURE, RATE_LIMIT_EXCEEDED rows persisted end-to-end</li>
+ *     <li>
+ *         Audit logging - AUTHENTICATION_SUCCESS, AUTHENTICATION_FAILURE, RATE_LIMIT_EXCEEDED rows persisted end-to-end
+ *     </li>
  *     <li>Security - brute force lockout under IP rotation, SQL injection defenses, XSS round-trip behavior</li>
  * </ul>
  *
@@ -99,6 +109,9 @@ public class AuthTests  extends BaseIntegrationTest {
 
     @Autowired
     private AuditLogRepository auditLogRepository;
+
+    @Autowired
+    private CsrfTokenRepository csrfTokenRepository;
 
     private User user;
 
@@ -201,7 +214,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.message").value("User registered successfully"))
                     .andExpect(jsonPath("$.data.email").value(request.getEmail()))
@@ -221,7 +235,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.message").value("User registered successfully"))
                     .andExpect(jsonPath("$.data.email").value(request.getEmail()))
@@ -241,7 +256,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Passwords do not match"))
                     .andExpect(jsonPath("$.timestamp").exists())
@@ -260,7 +276,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -279,7 +296,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -298,7 +316,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -317,7 +336,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -336,7 +356,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -358,7 +379,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -379,7 +401,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -400,7 +423,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -421,7 +445,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -442,7 +467,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -463,7 +489,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -483,7 +510,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -503,7 +531,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -523,7 +552,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -543,7 +573,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -563,7 +594,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -583,7 +615,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -603,7 +636,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -623,7 +657,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isConflict())
                     .andExpect(jsonPath("$.message").value(containsString("Email already registered: " + user.getEmail())))
                     .andExpect(jsonPath("$.error").value("Duplicate Resource"));
@@ -647,9 +682,9 @@ public class AuthTests  extends BaseIntegrationTest {
                     .build();
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(put(BASE_URL + "/change-password")
-                            .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.message").value("Password changed successfully"));
         }
@@ -666,9 +701,9 @@ public class AuthTests  extends BaseIntegrationTest {
                     .build();
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(put(BASE_URL + "/change-password")
-                            .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("New passwords do not match"))
                     .andExpect(jsonPath("$.error").value("Password Mismatch"));
@@ -686,9 +721,9 @@ public class AuthTests  extends BaseIntegrationTest {
                     .build();
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(put(BASE_URL + "/change-password")
-                            .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Old password is incorrect"))
                     .andExpect(jsonPath("$.error").value("Password Mismatch"));
@@ -706,9 +741,9 @@ public class AuthTests  extends BaseIntegrationTest {
                     .build();
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(put(BASE_URL + "/change-password")
-                            .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -727,9 +762,9 @@ public class AuthTests  extends BaseIntegrationTest {
                     .build();
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(put(BASE_URL + "/change-password")
-                            .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -748,9 +783,9 @@ public class AuthTests  extends BaseIntegrationTest {
                     .build();
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(put(BASE_URL + "/change-password")
-                            .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -769,9 +804,9 @@ public class AuthTests  extends BaseIntegrationTest {
                     .build();
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(put(BASE_URL + "/change-password")
-                            .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -790,9 +825,9 @@ public class AuthTests  extends BaseIntegrationTest {
                     .build();
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(put(BASE_URL + "/change-password")
-                            .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -814,9 +849,9 @@ public class AuthTests  extends BaseIntegrationTest {
                     .build();
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(put(BASE_URL + "/change-password")
-                            .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -837,9 +872,9 @@ public class AuthTests  extends BaseIntegrationTest {
                     .build();
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(put(BASE_URL + "/change-password")
-                            .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -860,9 +895,9 @@ public class AuthTests  extends BaseIntegrationTest {
                     .build();
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(put(BASE_URL + "/change-password")
-                            .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -883,9 +918,9 @@ public class AuthTests  extends BaseIntegrationTest {
                     .build();
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(put(BASE_URL + "/change-password")
-                            .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -906,9 +941,9 @@ public class AuthTests  extends BaseIntegrationTest {
                     .build();
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(put(BASE_URL + "/change-password")
-                            .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -929,9 +964,9 @@ public class AuthTests  extends BaseIntegrationTest {
                     .build();
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(put(BASE_URL + "/change-password")
-                            .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -950,9 +985,9 @@ public class AuthTests  extends BaseIntegrationTest {
                     .build();
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(put(BASE_URL + "/change-password")
-                            .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
@@ -972,9 +1007,9 @@ public class AuthTests  extends BaseIntegrationTest {
                     .build();
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(put(BASE_URL + "/change-password")
-                            .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isNotFound())
                     .andExpect(jsonPath("$.message").value("User not found with ID: " + userId));
         }
@@ -991,9 +1026,9 @@ public class AuthTests  extends BaseIntegrationTest {
                     .build();
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(put(BASE_URL + "/change-password")
-                            .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isForbidden());
         }
 
@@ -1009,9 +1044,9 @@ public class AuthTests  extends BaseIntegrationTest {
                     .build();
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(put(BASE_URL + "/change-password")
-                            .with(csrf())
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest());
         }
     }
@@ -1024,7 +1059,8 @@ public class AuthTests  extends BaseIntegrationTest {
         @WithMockUser(roles = "ADMIN")
         @DisplayName("Returns 200 OK with generated password when admin")
         public void adminSuccess() throws Exception {
-            mockMvc.perform(post(BASE_URL + "/reset-password/{userId}", user.getId()))
+            mockMvc.perform(post(BASE_URL + "/reset-password/{userId}", user.getId())
+                            .with(csrf()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.message").value("Password reset successfully"))
                     .andExpect(jsonPath("$.data").isString())
@@ -1047,7 +1083,8 @@ public class AuthTests  extends BaseIntegrationTest {
         @WithMockUser(roles = "USER")
         @DisplayName("Returns 403 Forbidden when user is not admin")
         public void notAdminForbidden() throws Exception {
-            mockMvc.perform(post(BASE_URL + "/reset-password/{userId}", user.getId()))
+            mockMvc.perform(post(BASE_URL + "/reset-password/{userId}", user.getId())
+                            .with(csrf()))
                     .andExpect(status().isForbidden());
         }
     }
@@ -1183,7 +1220,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/login")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isOk())
                     .andExpect(jsonPath("$.message").value("Login successful"))
                     .andExpect(jsonPath("$.data.accessToken").isString())
@@ -1202,7 +1240,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/login")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.message").value("Invalid email or password"))
                     .andExpect(jsonPath("$.error").value("Unauthorized"));
@@ -1215,7 +1254,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/login")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.message").value("Invalid email or password"))
                     .andExpect(jsonPath("$.error").value("Unauthorized"));
@@ -1228,7 +1268,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/login")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.fieldErrors.email").value("Invalid email format"))
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
@@ -1242,7 +1283,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/login")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.fieldErrors.email").value("Email is required"))
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
@@ -1256,7 +1298,8 @@ public class AuthTests  extends BaseIntegrationTest {
             ObjectMapper mapper = new ObjectMapper();
             mockMvc.perform(post(BASE_URL + "/login")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(mapper.writeValueAsString(request)))
+                            .content(mapper.writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.fieldErrors.password").value("Password is required"))
                     .andExpect(jsonPath("$.message").value("Invalid request payload"))
@@ -1359,13 +1402,15 @@ public class AuthTests  extends BaseIntegrationTest {
             for (int i = 0; i < 5; i++) {
                 mockMvc.perform(post(BASE_URL + "/login")
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(loginJson("owner@example.com", "WrongPass!")))
-                                .andExpect(status().isUnauthorized());
+                                .content(loginJson("owner@example.com", "WrongPass!"))
+                                .with(csrf()))
+                        .andExpect(status().isUnauthorized());
 
             }
             mockMvc.perform(post(BASE_URL + "/login")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(loginJson("owner@example.com", "WrongPass!")))
+                            .content(loginJson("owner@example.com", "WrongPass!"))
+                            .with(csrf()))
                     .andExpect(status().isTooManyRequests())
                     .andExpect(header().exists("Retry-After"))
                     .andExpect(jsonPath("$.message")
@@ -1380,13 +1425,15 @@ public class AuthTests  extends BaseIntegrationTest {
             for (int i = 0; i < 5; i++) {
                 mockMvc.perform(post(BASE_URL + "/login")
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(loginJson("owner@example.com", "WrongPass!")))
+                                .content(loginJson("owner@example.com", "WrongPass!"))
+                                .with(csrf()))
                         .andExpect(status().isUnauthorized());
 
             }
             mockMvc.perform(post(BASE_URL + "/login")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(loginJson("other@example.com", "WrongPass!")))
+                            .content(loginJson("other@example.com", "WrongPass!"))
+                            .with(csrf()))
                     .andExpect(status().isUnauthorized());
         }
 
@@ -1396,13 +1443,15 @@ public class AuthTests  extends BaseIntegrationTest {
             for (int i = 0; i < 5; i++) {
                 mockMvc.perform(post(BASE_URL + "/login")
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(loginJson("owner@example.com", "WrongPass!")))
+                                .content(loginJson("owner@example.com", "WrongPass!"))
+                                .with(csrf()))
                         .andExpect(status().isUnauthorized());
 
             }
             mockMvc.perform(post(BASE_URL + "/login")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(loginJson("owner@example.com", "OldPass123!")))
+                            .content(loginJson("owner@example.com", "OldPass123!"))
+                            .with(csrf()))
                     .andExpect(status().isTooManyRequests());
         }
     }
@@ -1428,14 +1477,16 @@ public class AuthTests  extends BaseIntegrationTest {
                 mockMvc.perform(post(BASE_URL + "/register")
                                 .contentType(MediaType.APPLICATION_JSON)
                                 .content(registerJson("rate-limit-" + i + "-" +
-                                        System.currentTimeMillis() + "@example.com")))
+                                        System.currentTimeMillis() + "@example.com"))
+                                .with(csrf()))
                         .andExpect(status().isCreated());
 
             }
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
                             .content(registerJson("rate-limit-" +
-                                    System.currentTimeMillis() + "@example.com")))
+                                    System.currentTimeMillis() + "@example.com"))
+                            .with(csrf()))
                     .andExpect(status().isTooManyRequests())
                     .andExpect(header().exists("Retry-After"))
                     .andExpect(jsonPath("$.message")
@@ -1459,7 +1510,8 @@ public class AuthTests  extends BaseIntegrationTest {
             assertThat(auditLogRepository.findAll()).isEmpty();
             mockMvc.perform(post(BASE_URL + "/login")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(loginJson("OldPass123!")))
+                            .content(loginJson("OldPass123!"))
+                            .with(csrf()))
                     .andExpect(status().isOk());
             List<AuditLog> logs = auditLogRepository.findAll();
             assertThat(logs).hasSize(1);
@@ -1477,7 +1529,8 @@ public class AuthTests  extends BaseIntegrationTest {
             assertThat(auditLogRepository.findAll()).isEmpty();
             mockMvc.perform(post(BASE_URL + "/login")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(loginJson("WrongPass!")))
+                            .content(loginJson("WrongPass!"))
+                            .with(csrf()))
                     .andExpect(status().isUnauthorized());
             List<AuditLog> logs = auditLogRepository.findAll();
             assertThat(logs).hasSize(1);
@@ -1496,12 +1549,14 @@ public class AuthTests  extends BaseIntegrationTest {
             for(int i = 0; i < 5; i++) {
                 mockMvc.perform(post(BASE_URL + "/login")
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(loginJson("WrongPass!")))
+                                .content(loginJson("WrongPass!"))
+                                .with(csrf()))
                         .andExpect(status().isUnauthorized());
             }
             mockMvc.perform(post(BASE_URL + "/login")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(loginJson("WrongPass!")))
+                            .content(loginJson("WrongPass!"))
+                            .with(csrf()))
                     .andExpect(status().isTooManyRequests());
             List<AuditLog> logs = auditLogRepository.findAll();
             assertThat(logs).hasSize(6);
@@ -1531,13 +1586,15 @@ public class AuthTests  extends BaseIntegrationTest {
                 mockMvc.perform(post(BASE_URL + "/login")
                                 .header("X-Forwarded-For", "10.0.0." + i)
                                 .contentType(MediaType.APPLICATION_JSON)
-                                .content(loginJson("owner@example.com", "WrongPass!")))
+                                .content(loginJson("owner@example.com", "WrongPass!"))
+                                .with(csrf()))
                         .andExpect(status().isUnauthorized());
             }
             mockMvc.perform(post(BASE_URL + "/login")
                             .header("X-Forwarded-For", "10.0.0.99")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(loginJson("owner@example.com", "WrongPass!")))
+                            .content(loginJson("owner@example.com", "WrongPass!"))
+                            .with(csrf()))
                     .andExpect(status().isTooManyRequests())
                     .andExpect(jsonPath("$.error").value("Too Many Requests"))
                     .andExpect(jsonPath("$.message").value(containsString("login attempts for this email")));
@@ -1548,7 +1605,8 @@ public class AuthTests  extends BaseIntegrationTest {
         public void sqlInjectionInLoginEmailIsRejected() throws Exception {
             mockMvc.perform(post(BASE_URL + "/login")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(loginJson("' OR '1'='1", "WrongPass!")))
+                            .content(loginJson("' OR '1'='1", "WrongPass!"))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
                     .andExpect(jsonPath("$.fieldErrors.email").value("Invalid email format"));
@@ -1559,7 +1617,8 @@ public class AuthTests  extends BaseIntegrationTest {
         public void sqlInjectionInLoginPasswordFailsAuthCleanly() throws Exception {
             mockMvc.perform(post(BASE_URL + "/login")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(loginJson("owner@example.com", "' OR '1'='1")))
+                            .content(loginJson("owner@example.com", "' OR '1'='1"))
+                            .with(csrf()))
                     .andExpect(status().isUnauthorized())
                     .andExpect(jsonPath("$.error").value("Unauthorized"))
                     .andExpect(jsonPath("$.message").value("Invalid email or password"));
@@ -1576,7 +1635,8 @@ public class AuthTests  extends BaseIntegrationTest {
             request.setLastName("Test");
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(new ObjectMapper().writeValueAsString(request)))
+                            .content(new ObjectMapper().writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isBadRequest())
                     .andExpect(jsonPath("$.error").value("Validation Failed"))
                     .andExpect(jsonPath("$.fieldErrors.email").value("Invalid email format"));
@@ -1594,9 +1654,71 @@ public class AuthTests  extends BaseIntegrationTest {
             request.setLastName("Doe");
             mockMvc.perform(post(BASE_URL + "/register")
                             .contentType(MediaType.APPLICATION_JSON)
-                            .content(new ObjectMapper().writeValueAsString(request)))
+                            .content(new ObjectMapper().writeValueAsString(request))
+                            .with(csrf()))
                     .andExpect(status().isCreated())
                     .andExpect(jsonPath("$.data.firstName").value(xssPayload));
+        }
+    }
+
+    /**
+     * Verifies CSRF enforcement and repository configuration at the MockMvc layer.
+     * <p>Deliberatly does <b>not</b> assert on the {@code Set-Cookie} header of a real HTTP response.
+     * {@code @AutoConfigureMockMvc} on {@link BaseIntegrationTest} activates {@code SecurityMockMvcAutoConfiguration},
+     * which substitutes a session-backed CSRF token repository into the whole application context -
+     * including real-HTTP requests served by the embedded Tomcat.
+     * Asserting on the production repository bean (as {@link #primerUsesCookieRepository()} does) is the
+     * only reliable way to verify the production setup in this context;
+     * verifying the actual cookie emission requires a context without {@code @AutoConfigureMockMvc}.
+     */
+    @Nested
+    @DisplayName("CSRF protection")
+    class CsrfTests {
+
+        @Test
+        @DisplayName("Production CSRF repository is CookieCsrfTokenRepository (JS-readable XSRF-TOKEN)")
+        public void primerUsesCookieRepository() {
+            assertThat(csrfTokenRepository)
+                    .as("Production must use CookieCsrfTokenRepository so the SPA can read XSRF-TOKEN")
+                    .isInstanceOf(CookieCsrfTokenRepository.class);
+        }
+
+        @Test
+        @DisplayName("GET /api/auth/csrf is publicly reachable")
+        public void primerIsPublic() throws Exception {
+            mockMvc.perform(get(BASE_URL + "/csrf"))
+                    .andExpect(status().isOk())
+                    .andExpect(jsonPath("$.message").value("CSRF cookie established"));
+        }
+
+        @Test
+        @DisplayName("POST /api/auth/login without a CSRF token is rejected with 403")
+        public void loginWithoutTokenIsForbidden() throws Exception {
+            mockMvc.perform(post(BASE_URL + "/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(new ObjectMapper().writeValueAsString(
+                                    new LoginRequest("owner@example.com", "OldPass123!"))
+                            ))
+                    .andExpect(status().isForbidden());
+        }
+
+        @Test
+        @DisplayName("POST /api/auth/login with a CSRF token succeeds")
+        public void loginWithTokenSucceeds() throws Exception {
+            mockMvc.perform(post(BASE_URL + "/login")
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(new ObjectMapper().writeValueAsString(
+                                    new LoginRequest("owner@example.com", "OldPass123!"))
+                            )
+                            .with(csrf()))
+                    .andExpect(status().isOk());
+        }
+
+        @Test
+        @DisplayName("GET endpoints do not require a CSRF token")
+        public void getEndpointsDoNotRequireToken() throws Exception {
+            mockMvc.perform(get(BASE_URL + "/csrf"))
+                    .andExpect(status().isOk());
         }
     }
 }
