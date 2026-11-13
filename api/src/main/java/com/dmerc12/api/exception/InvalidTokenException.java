@@ -1,10 +1,12 @@
 package com.dmerc12.api.exception;
 
+import org.springframework.http.HttpStatus;
+
 /**
  * Exception thrown when a JWT token is invalid, expired, or of the wrong type.
  * <p>Mapped to HTTP 401 Unauthorized by {@link GlobalExceptionHandler}.
  */
-public class InvalidTokenException extends RuntimeException {
+public class InvalidTokenException extends AuthException {
 
     /**
      * Constructs a new exception with the specified detail message.
@@ -12,6 +14,6 @@ public class InvalidTokenException extends RuntimeException {
      * @param message the detail message
      */
     public InvalidTokenException(String message) {
-        super(message);
+        super(message, HttpStatus.UNAUTHORIZED, "Invalid Token");
     }
 }

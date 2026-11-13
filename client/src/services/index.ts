@@ -13,4 +13,5 @@ export {
     updateTransaction,
     deleteTransaction,
 } from './transactionService';
+export { ensureCsrfCookie } from './api';
 export { getCategories, getCategory } from './categoryService';

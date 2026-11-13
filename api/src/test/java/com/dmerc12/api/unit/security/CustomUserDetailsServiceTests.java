@@ -61,4 +61,23 @@ public class CustomUserDetailsServiceTests {
                 .isInstanceOf(UsernameNotFoundException.class)
                 .hasMessageContaining("User not found");
     }
+
+    @Test
+    @DisplayName("Load user by email - disabled user produces a disabled UserDetails")
+    public void loadUserByUsernameDisabledUser() {
+        User user = User.builder()
+                .email("disabled@example.com")
+                .passwordHash("hashed")
+                .firstName("Disabled")
+                .lastName("User")
+                .roles(Set.of(Role.ROLE_USER))
+                .enabled(false)
+                .build();
+        when(userRepository.findByEmail("disabled@example.com")).thenReturn(Optional.of(user));
+        UserDetails details = service.loadUserByUsername("disabled@example.com");
+        assertThat(details.isEnabled()).isFalse();
+        assertThat(details.isAccountNonLocked()).isTrue();
+        assertThat(details.isAccountNonExpired()).isTrue();
+        assertThat(details.isCredentialsNonExpired()).isTrue();
+    }
 }

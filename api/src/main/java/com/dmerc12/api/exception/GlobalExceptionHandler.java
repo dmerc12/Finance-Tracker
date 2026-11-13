@@ -3,6 +3,7 @@ package com.dmerc12.api.exception;
 import com.dmerc12.api.dto.ResponseDTO;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.AccessDeniedException;
@@ -44,6 +45,48 @@ public class GlobalExceptionHandler {
     private static final Logger log = LoggerFactory.getLogger(GlobalExceptionHandler.class);
 
     /**
+     * Handles authentication failures.
+     *
+     * <p>Each {@link AuthException} carries its own HTTP status and error code,
+     * so a single handler covers invalid tokens, password mismatches,
+     * and any authentication failure mode introduced in the future.
+     *
+     * @param ex the thrown exception
+     * @return the status and error code carried by the exception
+     */
+    @ExceptionHandler(AuthException.class)
+    public ResponseEntity<ResponseDTO<Object>> handleAuthException(AuthException ex) {
+        log.warn("Authentication exception: {}", ex.getMessage());
+        ResponseDTO<Object> response = ResponseDTO.error(
+                ex.getMessage(),
+                ex.getStatus().value(),
+                ex.getErrorCode()
+        );
+        return ResponseEntity.status(ex.getStatus()).body(response);
+    }
+
+    /**
+     * Handles rate limit breaches.
+     * <p>Emits HTTP 429 with a {@code Retry-After} header giving the number
+     * of seconds the client should wait before retrying.
+     *
+     * @param ex the thrown exception
+     * @return 429 Too Many Requests with Retry-After
+     */
+    @ExceptionHandler(RateLimitExceededException.class)
+    public ResponseEntity<ResponseDTO<Object>> handleRateLimitExceededException(RateLimitExceededException ex) {
+        log.warn("Rate limit exceeded: {}", ex.getMessage());
+        ResponseDTO<Object> response = ResponseDTO.error(
+                ex.getMessage(),
+                HttpStatus.TOO_MANY_REQUESTS.value(),
+                "Too Many Requests"
+        );
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+            .header(HttpHeaders.RETRY_AFTER, String.valueOf(ex.getRetryAfterSeconds()))
+            .body(response);
+    }
+
+    /**
      * Handles all unhandled exceptions.
      *
      * @param ex the thrown exception
@@ -75,23 +118,6 @@ public class GlobalExceptionHandler {
                 "Duplicate Resource"
         );
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
-    }
-
-    /**
-     * Handles password mismatch errors.
-     *
-     * @param ex the thrown exception
-     * @return 400 Bad Request
-     */
-    @ExceptionHandler(PasswordMismatchException.class)
-    public ResponseEntity<ResponseDTO<Object>> handlePasswordMismatchException(PasswordMismatchException ex) {
-        log.error("Password mismatch exception occurred", ex);
-        ResponseDTO<Object> response = ResponseDTO.error(
-                ex.getMessage(),
-                HttpStatus.BAD_REQUEST.value(),
-                "Password Mismatch"
-        );
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
     }
 
     /**
@@ -153,17 +179,6 @@ public class GlobalExceptionHandler {
                 "Forbidden"
         );
         return ResponseEntity.status(HttpStatus.FORBIDDEN).body(response);
-    }
-
-    @ExceptionHandler(InvalidTokenException.class)
-    public ResponseEntity<ResponseDTO<Object>> handleInvalidTokenException(InvalidTokenException ex) {
-        log.error("Invalid token: {}", ex.getMessage());
-        ResponseDTO<Object> response = ResponseDTO.error(
-                ex.getMessage(),
-                HttpStatus.UNAUTHORIZED.value(),
-                "Invalid Token"
-        );
-        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
     }
 
     /**

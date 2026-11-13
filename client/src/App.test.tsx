@@ -2,13 +2,23 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import userReducer from './store/slices/userSlice/userSlice';
 import authReducer from './store/slices/authSlice/authSlice';
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { configureStore } from '@reduxjs/toolkit';
 import { Outlet } from 'react-router-dom';
 import { Provider } from 'react-redux';
 import type { UserDTO } from './types';
 import App from './App';
 
-vi.mock('./pages/login', () => ({ default: () => <div>Login Page</div> }));
+const { loginShouldThrowRef } = vi.hoisted(() => ({ loginShouldThrowRef: { value: false } }));
+
+vi.mock('./pages/login', () => ({
+    default: () => {
+        if (loginShouldThrowRef.value) {
+            throw new Error('Login render failure');
+        }
+        return <div>Login Page</div>;
+    },
+}));
 vi.mock('./pages/register', () => ({ default: () => <div>Register Page</div> }));
 vi.mock('./pages/Dashboard', () => ({ default: () => <div>Dashboard Page</div> }));
 vi.mock('./pages/Accounts', () => ({ default: () => <div>Accounts Page</div> }));
@@ -28,6 +38,12 @@ vi.mock('./layouts', () => ({
             <Outlet />
         </div>
     ),
+}));
+vi.mock('./services', () => ({
+    authService: {
+        getCurrentUser: vi.fn().mockResolvedValue(null),
+    },
+    ensureCsrfCookie: vi.fn().mockResolvedValue(undefined),
 }));
 
 const regularUser: UserDTO = {
@@ -81,6 +97,7 @@ const renderApp = (user: UserDTO | null) => {
 describe('App', () => {
     beforeEach(() => {
         window.history.pushState({}, '', '/');
+        loginShouldThrowRef.value = false;
     });
 
     it('renders MainLayout at / when authenticated', () => {
@@ -111,5 +128,27 @@ describe('App', () => {
         renderApp(adminUser);
         expect(screen.getByText('User Management Page')).toBeInTheDocument();
         expect(screen.queryByText('Unauthorized Page')).not.toBeInTheDocument();
+    });
+
+    it('renders the error boundary when the Login page throws', () => {
+        loginShouldThrowRef.value = true;
+        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        renderApp(null);
+        expect(screen.getByText(/something went wrong/i)).toBeInTheDocument();
+        expect(screen.queryByText('Login Page')).not.toBeInTheDocument();
+        consoleErrorSpy.mockRestore();
+    });
+
+    it('recovers from a caught error when navigating via the fallback link', async () => {
+        const user = userEvent.setup();
+        loginShouldThrowRef.value = true;
+        const consoleErrorSpy = vi.spyOn(console, 'error').mockImplementation(() => {});
+        renderApp(null);
+        expect(screen.getByText(/something went wrong/i)).toBeInTheDocument();
+        loginShouldThrowRef.value = false;
+        await user.click(screen.getByRole('link', { name: /go to login/i }));
+        expect(screen.getByText('Login Page')).toBeInTheDocument();
+        expect(screen.queryByText(/something went wrong/i)).not.toBeInTheDocument();
+        consoleErrorSpy.mockRestore();
     });
 });

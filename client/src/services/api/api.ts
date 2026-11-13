@@ -16,7 +16,11 @@ import axios, { type AxiosError, type InternalAxiosRequestConfig } from 'axios';
  * <ul>
  * <p><b>Security Note:</b>
  * The JWT is stored in an HTTP-only cookie, which protects against XSS attacks.
- * CSRF protection is handled by the backend using a cookie-based CSRF token.
+ * CSRF protection uses a double-submit cookie: a request interceptor reads the {@code XSRF-TOKEN}
+ * cookie (readable by JS, by design) and echoes it in {@code X-XSRF-TOKEN} on state-changing requests.
+ * The cookie is established by {@link ensureCsrfCookie}, which must be called once at app bootstrap
+ * - see {@code SessionBootstrap}.
+ * The auth cookies remain HTTP-only; only the CSRF token is JavaScript-readable.
  * <p><b>CORS Note:</b>
  * The backend must allow credentials and list the frontend origin in CORS configuration.
  */
@@ -29,6 +33,52 @@ const api = axios.create({
     },
     withCredentials: true,
 });
+
+/**
+ * Reads a cookie value by name. Used only for the CSRF double-submit cookie;
+ * HttpOnly auth cookies are never readable from JavaScript by design.
+ */
+const getCookie = (name: string): string | null => {
+    const match = document.cookie.match(new RegExp('(^|;\\s*)' + name + '=([^;]*)'));
+    return match ? decodeURIComponent(match[2]) : null;
+};
+
+/**
+ * Attaches the CSRF header on state-changing requests.
+ * <p>Spring Security's {@code CsrfConfigurer.spa()} writes the raw token to the
+ * {@code XSRF-TOKEN} cookie and expects it back in {@code X-XSRF-TOKEN}.
+ * The cookie is a session cookie, so it must be re-established on each app load -
+ * see {@link ensureCsrfCookie}
+ */
+api.interceptors.request.use((config) => {
+    const method = (config.method ?? 'get').toLowerCase();
+    if (['post', 'put', 'patch', 'delete'].includes(method)) {
+        const token = getCookie('XSRF-TOKEN');
+        if (token) {
+            config.headers.set('X-XSRF-TOKEN', token);
+        }
+    }
+    return config;
+});
+
+/**
+ * One-shot promise that resolves once the CSRF cookie has been established.
+ * <p>Call this from application bootstrap before rendering the app,
+ * so the first login or register POST carries a valid token.
+ */
+let csrfPromise: Promise<void> | null = null;
+export function ensureCsrfCookie(): Promise<void> {
+    if (!csrfPromise) {
+        csrfPromise = api
+            .get('/auth/csrf')
+            .then(() => undefined)
+            .catch((err) => {
+                csrfPromise = null;
+                throw err;
+            });
+    }
+    return csrfPromise;
+}
 
 /**
  * Endpoints that must not trigger the refresh flow.
@@ -92,16 +142,30 @@ const refreshAccessToken = async (): Promise<void> => {
 
 /**
  * Final error handler for responses the interceptor cannot recover.
- * <p>Handles:
+ * <p>Logs at the severity appropriate to the failure mode; never swallows the rejection.
+ * {@link getErrorData} is what callers use to build a user-facing message -
+ * this function exists for observability only.
  * <ul>
- *     <li><b>401 Unauthorized</b> - logs a warning; the caller receives the rejection</li>
- *     <li><b>403 Forbidden</b> - passes through unchanged</li>
- *     <li>Everything else - passes through unchanged</li>
+ *     <li><b>401</b> - warn (auth event, already wired to refresh flow)</li>
+ *     <li><b>403</b> - warn (permission failure)</li>
+ *     <li><b>5xx</b> - error (server fault, actionable for monitoring)</li>
+ *     <li><b>Timeout / network</b> - warn</li>
  * </ul>
  */
 export const errorHandler = (error: unknown): Promise<never> => {
-    if (axios.isAxiosError(error) && error.response?.status === 401) {
-        console.warn('Unauthorized - user needs to log in again.');
+    if (axios.isAxiosError(error)) {
+        const status = error.response?.status;
+        if (status === 401) {
+            console.warn('Unauthorized - user needs to log in again.');
+        } else if (status === 403) {
+            console.warn('Forbidden - user lacks permission for this resource.');
+        } else if (status !== undefined && status >= 500) {
+            console.error('Server error', status, error.response?.data);
+        } else if (error.code === 'ECONNABORTED') {
+            console.warn('Request timed out.');
+        } else if (error.code === 'ERR_NETWORK') {
+            console.warn('Network error - unable to reach server.');
+        }
     }
     return Promise.reject(error);
 };
